@@ -15,7 +15,7 @@
 
     <FontFamily x:Key="PixelFont">pack://application:,,,/Assets/#Press Start 2P, Consolas</FontFamily>
 
-    <Style TargetType="Window">
+    <Style x:Key="AppWindow" TargetType="Window">
         <Setter Property="Background" Value="{StaticResource BgBrush}" />
         <Setter Property="Foreground" Value="{StaticResource FgBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource PixelFont}" />

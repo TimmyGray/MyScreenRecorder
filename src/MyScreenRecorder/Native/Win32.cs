@@ -27,7 +27,7 @@ internal static class Win32
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
     public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint affinity);
 
@@ -54,6 +54,17 @@ internal static class Win32
     public static void ExcludeFromCapture(IntPtr hwnd)
     {
         SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint colorKey, byte alpha, uint flags);
+
+    private const uint LWA_COLORKEY = 0x1;
+
+    public static void SetColorKey(IntPtr hwnd, byte r, byte g, byte b)
+    {
+        SetLayeredWindowAttributes(hwnd, (uint)(r | (g << 8) | (b << 16)), 0, LWA_COLORKEY);
     }
 }
 

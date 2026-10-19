@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $root = $PSScriptRoot
 $tools = Join-Path $root 'tools'
 $ffmpeg = Join-Path $tools 'ffmpeg.exe'
