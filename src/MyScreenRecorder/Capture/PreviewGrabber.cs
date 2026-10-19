@@ -9,8 +9,8 @@ namespace MyScreenRecorder.Capture;
 
 public sealed class PreviewGrabber
 {
-    private const int MaxThumbWidth = 384;
-    private const int MaxThumbHeight = 216;
+    private const int MaxThumbWidth = 476;
+    private const int MaxThumbHeight = 266;
 
     private readonly Action<BitmapSource> _onFrame;
     private readonly DispatcherTimer _timer;

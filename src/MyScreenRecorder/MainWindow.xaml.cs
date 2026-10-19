@@ -60,8 +60,9 @@ public partial class MainWindow : Window
         });
         _meterTimer.Tick += (_, _) => TickMeters();
         _statsTimer.Tick += (_, _) => UpdateStatus();
-        SavePathText.Text = RecordingSession.OutputFolder;
-        SavePathText.ToolTip = RecordingSession.OutputFolder;
+        Tips.ForTrimmed(StatusText);
+        Tips.ForTrimmed(SavePathText);
+        Tips.Set(SavePathText, RecordingSession.OutputFolder);
         Loaded += (_, _) => Initialize();
     }
 
@@ -255,6 +256,41 @@ public partial class MainWindow : Window
         await StopRecordingAsync();
     }
 
+    private async void CancelButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        if (_session.State != RecordingState.Recording && _session.State != RecordingState.Paused) return;
+
+        MessageBoxResult answer = MessageBox.Show(
+            this,
+            "Discard this recording? It will not be saved.",
+            "CANCEL RECORDING",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+        if (answer != MessageBoxResult.Yes) return;
+
+        if (_session.State != RecordingState.Recording && _session.State != RecordingState.Paused) return;
+        _busy = true;
+        _message = "CANCELING...";
+        UpdateUi();
+        try
+        {
+            await _session.CancelAsync();
+            _lastFinal = null;
+            _message = _session.LastError ?? "CANCELED: recording discarded";
+        }
+        catch (Exception ex)
+        {
+            _message = "ERROR: " + ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+            UpdateUi();
+        }
+    }
+
     private async Task StopRecordingAsync()
     {
         if (_session.State != RecordingState.Recording && _session.State != RecordingState.Paused) return;
@@ -322,6 +358,7 @@ public partial class MainWindow : Window
         PauseButton.IsEnabled = active && !_busy;
         PauseButton.Content = state == RecordingState.Paused ? "> RESUME" : "|| PAUSE";
         StopButton.IsEnabled = active && !_busy;
+        CancelButton.IsEnabled = active && !_busy;
 
         OverlayState overlayState = state switch
         {
@@ -360,8 +397,7 @@ public partial class MainWindow : Window
                 else if (_message != null && _message.StartsWith("SAVED", StringComparison.Ordinal)) foreground = (Brush)FindResource("GreenBrush");
                 break;
         }
-        StatusText.Text = text;
-        StatusText.ToolTip = text;
+        Tips.Set(StatusText, text);
         StatusText.Foreground = foreground;
     }
 

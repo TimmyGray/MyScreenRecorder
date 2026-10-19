@@ -2,6 +2,19 @@
 
 Small Windows screen recorder: screen + microphone + speaker (WASAPI loopback) in one file.
 
+## Download
+
+Grab `MyScreenRecorder.exe` from the latest [GitHub Release](../../releases/latest) and double-click it. Requires 64-bit Windows 10 version 2004 or newer. The exe is unsigned, so SmartScreen may ask you to click *More info* then *Run anyway*.
+
+## Releasing
+
+Push a version tag; the `release` workflow builds the exe and attaches it to a new GitHub Release:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ## Build
 
 Requires the .NET 10 SDK. Run:
@@ -19,7 +32,7 @@ Double-click `dist\MyScreenRecorder.exe`.
 - SOURCE: one monitor, ALL monitors, or a drawn REGION
 - MIC / SPEAKER: pick a device or NONE; both are mixed into the recording
 - QUALITY: video 480P / 720P / 1080P (never upscaled), audio AAC 128K / AAC 256K / WAV
-- REC / PAUSE / STOP: pause and resume any number of times; one output file
+- REC / PAUSE / STOP / CANCEL: pause and resume any number of times into one output file; CANCEL discards the recording after a confirmation
 
 ## Where files go
 

@@ -116,7 +116,7 @@ public sealed class RecordingSession : IDisposable
                 ? Quality.Label(vq) + " / " + Quality.Label(aq)
                 : Quality.Label(vq);
             _stamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-            _sessionId = Guid.NewGuid().ToString("N").Substring(0, 8);
+            _sessionId = Guid.NewGuid().ToString("N");
             _partsDir = Path.Combine(OutputFolder, ".parts", _stamp);
             Directory.CreateDirectory(_partsDir);
 
@@ -220,6 +220,49 @@ public sealed class RecordingSession : IDisposable
         {
             _ops.Release();
         }
+    }
+
+    public async Task CancelAsync()
+    {
+        await _ops.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_state != RecordingState.Recording && _state != RecordingState.Paused) return;
+
+            SetState(RecordingState.Finalizing);
+            try
+            {
+                _watch.Stop();
+                await StopCurrentAsync().ConfigureAwait(false);
+                await DeletePartsAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                SetState(RecordingState.Idle);
+            }
+        }
+        finally
+        {
+            _ops.Release();
+        }
+    }
+
+    private async Task DeletePartsAsync()
+    {
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                if (Directory.Exists(_partsDir)) Directory.Delete(_partsDir, true);
+                return;
+            }
+            catch
+            {
+                await Task.Delay(300).ConfigureAwait(false);
+            }
+        }
+
+        LastError = "Could not delete " + _partsDir;
     }
 
     public void Dispose()

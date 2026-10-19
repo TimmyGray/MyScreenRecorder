@@ -46,9 +46,9 @@ internal static class Win32
         AddExStyle(hwnd, WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE);
     }
 
-    public static void PlaceTopmost(IntPtr hwnd, Rectangle bounds)
+    public static void PlaceTopmost(IntPtr hwnd, Rectangle bounds, bool show = true)
     {
-        SetWindowPos(hwnd, HWND_TOPMOST, bounds.X, bounds.Y, bounds.Width, bounds.Height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        SetWindowPos(hwnd, HWND_TOPMOST, bounds.X, bounds.Y, bounds.Width, bounds.Height, SWP_NOACTIVATE | (show ? SWP_SHOWWINDOW : 0));
     }
 
     public static void ExcludeFromCapture(IntPtr hwnd)
@@ -60,11 +60,11 @@ internal static class Win32
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint colorKey, byte alpha, uint flags);
 
-    private const uint LWA_COLORKEY = 0x1;
+    private const uint LWA_ALPHA = 0x2;
 
-    public static void SetColorKey(IntPtr hwnd, byte r, byte g, byte b)
+    public static void SetOpaqueLayered(IntPtr hwnd)
     {
-        SetLayeredWindowAttributes(hwnd, (uint)(r | (g << 8) | (b << 16)), 0, LWA_COLORKEY);
+        SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
     }
 }
 

@@ -18,7 +18,7 @@ public sealed class OverlayManager : IDisposable
     private static readonly System.Windows.Media.Brush RedBrush = Create(0xFF, 0x22, 0x44);
     private static readonly System.Windows.Media.Brush YellowBrush = Create(0xFF, 0xCC, 0x00);
 
-    private readonly List<MonitorOverlayWindow> _windows = new();
+    private readonly List<MonitorOverlay> _windows = new();
     private IReadOnlyList<MonitorInfo> _monitors = Array.Empty<MonitorInfo>();
     private bool _visible = true;
 
@@ -52,17 +52,7 @@ public sealed class OverlayManager : IDisposable
         _visible = visible;
         foreach (var window in _windows)
         {
-            if (visible)
-            {
-                if (!window.IsVisible)
-                {
-                    window.Show();
-                }
-            }
-            else if (window.IsVisible)
-            {
-                window.Hide();
-            }
+            window.SetVisible(visible);
         }
     }
 
@@ -70,13 +60,7 @@ public sealed class OverlayManager : IDisposable
     {
         foreach (var window in _windows)
         {
-            try
-            {
-                window.Close();
-            }
-            catch (InvalidOperationException)
-            {
-            }
+            window.Close();
         }
         _windows.Clear();
         _monitors = Array.Empty<MonitorInfo>();
@@ -99,12 +83,9 @@ public sealed class OverlayManager : IDisposable
         _monitors = current;
         foreach (var monitor in current)
         {
-            var window = new MonitorOverlayWindow(monitor);
+            var window = new MonitorOverlay(monitor);
+            window.SetVisible(_visible);
             _windows.Add(window);
-            if (_visible)
-            {
-                window.Show();
-            }
         }
     }
 

@@ -11,7 +11,6 @@ public sealed class Cycler : Grid
     private readonly Button _next = new() { Content = ">", Width = 28 };
     private readonly TextBlock _text = new()
     {
-        TextTrimming = TextTrimming.CharacterEllipsis,
         Margin = new Thickness(8, 0, 8, 0),
         VerticalAlignment = VerticalAlignment.Center
     };
@@ -33,6 +32,7 @@ public sealed class Cycler : Grid
         Children.Add(_prev);
         Children.Add(_text);
         Children.Add(_next);
+        Tips.ForTrimmed(_text);
         _prev.Click += (_, _) => Step(-1);
         _next.Click += (_, _) => Step(1);
     }
@@ -55,7 +55,6 @@ public sealed class Cycler : Grid
     private void Refresh()
     {
         string text = _items.Count == 0 ? string.Empty : _items[_index];
-        _text.Text = text;
-        _text.ToolTip = text;
+        Tips.Set(_text, text);
     }
 }

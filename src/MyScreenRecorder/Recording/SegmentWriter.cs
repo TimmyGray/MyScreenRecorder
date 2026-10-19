@@ -71,7 +71,7 @@ public sealed class SegmentWriter
 
         if (hasAudio)
         {
-            _pipe = new NamedPipeServerStream(pipeName, PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 0, 1 << 20);
+            _pipe = new NamedPipeServerStream(pipeName, PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly, 0, 1 << 20);
         }
 
         ProcessStartInfo psi = BuildStartInfo(hasAudio, pipeName);

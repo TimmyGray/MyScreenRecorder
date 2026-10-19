@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:MyScreenRecorder"
         Style="{StaticResource AppWindow}"
-        Title="MY SCREEN RECORDER" Width="440" SizeToContent="Height" ResizeMode="NoResize"
+        Title="MY SCREEN RECORDER" Width="640" SizeToContent="Height" ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen">
     <StackPanel Margin="10,6,10,10">
         <TextBlock Text="MY SCREEN RECORDER" FontSize="12" Foreground="{StaticResource GreenBrush}"
@@ -21,7 +21,7 @@
             <Button x:Name="RegionButton" Grid.Column="2" Content="REGION" Margin="6,0,0,0" Click="RegionButton_Click" />
         </Grid>
 
-        <Border BorderBrush="{StaticResource FgBrush}" BorderThickness="2" Width="388" Height="220"
+        <Border BorderBrush="{StaticResource FgBrush}" BorderThickness="2" Width="480" Height="270"
                 HorizontalAlignment="Center" Margin="0,0,0,8">
             <Image x:Name="PreviewImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor" />
         </Border>
@@ -70,10 +70,12 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Button x:Name="RecButton" Content="* REC" Margin="0,0,3,0" Click="RecButton_Click" />
             <Button x:Name="PauseButton" Grid.Column="1" Content="|| PAUSE" Margin="3,0" Click="PauseButton_Click" />
-            <Button x:Name="StopButton" Grid.Column="2" Content="[] STOP" Margin="3,0,0,0" Click="StopButton_Click" />
+            <Button x:Name="StopButton" Grid.Column="2" Content="[] STOP" Margin="3,0" Click="StopButton_Click" />
+            <Button x:Name="CancelButton" Grid.Column="3" Content="X CANCEL" Margin="3,0,0,0" Click="CancelButton_Click" />
         </Grid>
 
         <TextBlock x:Name="StatusText" Text="READY" TextTrimming="CharacterEllipsis" Margin="0,0,0,8" />
