@@ -51,8 +51,8 @@ public static class Quality
             "-vf", $"scale=-2:'min({h},ih)':flags=bicubic,format=yuv420p",
             "-c:v", "libx264",
             "-preset", "veryfast",
-            "-crf", "23",
-            "-g", "60"
+            "-crf", "28",
+            "-g", "30"
         };
     }
 
@@ -64,7 +64,7 @@ public static class Quality
     };
 
     public static string VideoArgs(VideoQuality vq) =>
-        $"-vf scale=-2:'min({Height(vq)},ih)':flags=bicubic,format=yuv420p -c:v libx264 -preset veryfast -crf 23 -g 60";
+        $"-vf scale=-2:'min({Height(vq)},ih)':flags=bicubic,format=yuv420p -c:v libx264 -preset veryfast -crf 28 -g 30";
 
     public static string AudioArgs(AudioQuality aq) => aq switch
     {

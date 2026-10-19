@@ -191,7 +191,7 @@ public sealed class SegmentWriter
         args.Add("-f");
         args.Add("gdigrab");
         args.Add("-framerate");
-        args.Add("30");
+        args.Add("15");
         args.Add("-draw_mouse");
         args.Add("1");
         args.Add("-offset_x");
