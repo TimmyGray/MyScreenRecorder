@@ -4,8 +4,6 @@ using NAudio.CoreAudioApi;
 
 namespace MyScreenRecorder.Audio;
 
-public sealed record AudioDeviceInfo(string Id, string Name);
-
 public static class AudioDevices
 {
     public static IReadOnlyList<AudioDeviceInfo> Capture()
