@@ -3,8 +3,6 @@ using System.Linq;
 
 namespace MyScreenRecorder.Capture;
 
-public sealed record MonitorInfo(int Number, System.Drawing.Rectangle Bounds, bool IsPrimary);
-
 public static class ScreenInfo
 {
     public static IReadOnlyList<MonitorInfo> GetMonitors()

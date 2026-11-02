@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -26,16 +25,14 @@ public sealed class Settings
 
     public AudioQuality AudioQuality { get; set; } = AudioQuality.Aac256;
 
-    private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "MyScreenRecorder",
-        "settings.json");
+    public static Settings Load() => Load(AppPaths.SettingsFile);
 
-    public static Settings Load()
+    public void Save() => Save(AppPaths.SettingsFile);
+
+    internal static Settings Load(string path)
     {
         try
         {
-            string path = FilePath;
             if (!File.Exists(path)) return new Settings();
             string json = File.ReadAllText(path);
             return JsonSerializer.Deserialize<Settings>(json, Options) ?? new Settings();
@@ -46,11 +43,10 @@ public sealed class Settings
         }
     }
 
-    public void Save()
+    internal void Save(string path)
     {
         try
         {
-            string path = FilePath;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonSerializer.Serialize(this, Options));
         }

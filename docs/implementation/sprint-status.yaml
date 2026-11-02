@@ -1,0 +1,37 @@
+# generated: 2026-10-29   last_updated: 2026-10-29
+project: MyScreenRecorder
+story_location: docs/implementation
+planning: docs/planning/epics-linux-build.md
+development_status:
+  epic-1: in-progress
+  1-1-core-and-test-projects: review               # Core; Windows smoke
+  1-2-recording-pipeline-into-core: backlog       # Core; Windows smoke; needs 1-1
+  1-3-audio-capture-seam: backlog                 # Core; Windows smoke; needs 1-1 (default after 1-2)
+  1-4-recorder-controller: backlog                # Core; needs 1-2, 1-3
+  epic-1-retrospective: optional
+  epic-2: backlog
+  2-1-linux-projects-skeleton: backlog            # Linux; needs 1-1
+  2-2-linux-process-launcher: backlog             # Linux; needs 1-2, 2-1
+  2-3-ffmpeg-on-linux: backlog                    # Linux; needs 2-2
+  2-4-pulseaudio-capture: backlog                 # Linux; needs 1-3, 2-1
+  epic-2-retrospective: optional
+  epic-3: backlog
+  3-1-linux-main-window: backlog                  # Linux UI; needs 1-4, 2-2, 2-3, 2-4
+  3-2-live-preview: backlog                       # Linux UI; needs 3-1
+  3-3-region-selector: backlog                    # Linux UI; needs 3-1
+  3-4-x11-overlays: backlog                       # Linux UI; needs 3-1, 3-3
+  epic-3-retrospective: optional
+  epic-4: backlog
+  4-1-build-sh-and-tarball: backlog               # Build; needs 3-1
+  4-2-release-workflow: backlog                   # Build; Windows smoke; needs 4-1
+  epic-4-retrospective: optional
+  epic-5: backlog                                 # backlog after the first Linux release
+  5-1-windows-adopts-recorder-controller: backlog
+  5-2-orphan-ffmpeg-sweep: backlog
+  5-3-open-selects-file: backlog
+  5-4-desktop-file-and-icon: backlog
+  5-5-libpulse-introspection: backlog
+  5-6-pin-windows-ffmpeg: backlog
+  5-7-dotnet11-kill-on-parent-exit: backlog
+  5-8-windows-x264-latency: backlog               # only if Windows smoke W3 loses the clap
+  epic-5-retrospective: optional

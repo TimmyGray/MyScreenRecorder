@@ -47,8 +47,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MyScreenRecorder", "settings.json");
-        _firstRun = !File.Exists(settingsPath);
+        _firstRun = !File.Exists(AppPaths.SettingsFile);
         _settings = Settings.Load();
         _session = new RecordingSession(_audio);
         _preview = new PreviewGrabber(frame => PreviewImage.Source = frame);
@@ -141,7 +140,7 @@ public partial class MainWindow : Window
     private void RebuildTargets(int selectIndex)
     {
         _targets = _monitors.Select(CaptureTarget.ForMonitor).ToList();
-        _targets.Add(CaptureTarget.ForAll());
+        _targets.Add(CaptureTarget.ForAll(ScreenInfo.GetMonitors()));
         if (_region != null) _targets.Add(_region);
         SourceCycler.SetItems(_targets.Select(t => t.Label).ToList(), selectIndex);
     }
@@ -197,7 +196,7 @@ public partial class MainWindow : Window
             RegionResult? result = await RegionSelector.SelectAsync();
             if (result != null)
             {
-                _region = CaptureTarget.ForRegion(result.Bounds, result.MonitorNumber);
+                _region = CaptureTarget.ForRegion(result.Bounds, ScreenInfo.GetMonitors(), result.MonitorNumber);
                 RebuildTargets(_monitors.Count + 1);
                 OnSourceChanged();
             }

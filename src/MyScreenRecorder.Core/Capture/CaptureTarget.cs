@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace MyScreenRecorder.Capture;
@@ -21,10 +23,15 @@ public sealed record CaptureTarget(TargetKind Kind, System.Drawing.Rectangle Bou
             new[] { m.Number });
     }
 
-    public static CaptureTarget ForAll()
+    public static CaptureTarget ForAll(IReadOnlyList<MonitorInfo> monitors)
     {
-        var bounds = Even(System.Windows.Forms.SystemInformation.VirtualScreen);
-        var numbers = ScreenInfo.GetMonitors().Select(m => m.Number).ToArray();
+        if (monitors.Count == 0)
+        {
+            throw new ArgumentException("At least one monitor is required.", nameof(monitors));
+        }
+
+        var bounds = Even(monitors.Select(m => m.Bounds).Aggregate(System.Drawing.Rectangle.Union));
+        var numbers = monitors.Select(m => m.Number).ToArray();
         return new CaptureTarget(
             TargetKind.All,
             bounds,
@@ -32,9 +39,9 @@ public sealed record CaptureTarget(TargetKind Kind, System.Drawing.Rectangle Bou
             numbers);
     }
 
-    public static CaptureTarget ForRegion(System.Drawing.Rectangle bounds, int monitorNumber)
+    public static CaptureTarget ForRegion(System.Drawing.Rectangle bounds, IReadOnlyList<MonitorInfo> monitors, int monitorNumber)
     {
-        var monitor = ScreenInfo.GetMonitors().FirstOrDefault(m => m.Number == monitorNumber);
+        var monitor = monitors.FirstOrDefault(m => m.Number == monitorNumber);
         if (monitor != null)
         {
             var clamped = System.Drawing.Rectangle.Intersect(bounds, monitor.Bounds);

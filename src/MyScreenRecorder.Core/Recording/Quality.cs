@@ -18,10 +18,6 @@ public enum AudioQuality
 
 public static class Quality
 {
-    public static readonly VideoQuality[] AllVideo = { VideoQuality.P480, VideoQuality.P720, VideoQuality.P1080 };
-
-    public static readonly AudioQuality[] AllAudio = { AudioQuality.Aac128, AudioQuality.Aac256, AudioQuality.Wav };
-
     public static string Label(VideoQuality vq) => vq switch
     {
         VideoQuality.P480 => "480P",
@@ -61,16 +57,6 @@ public static class Quality
         AudioQuality.Aac128 => new[] { "-c:a", "aac", "-b:a", "128k" },
         AudioQuality.Aac256 => new[] { "-c:a", "aac", "-b:a", "256k" },
         _ => new[] { "-c:a", "pcm_s16le" }
-    };
-
-    public static string VideoArgs(VideoQuality vq) =>
-        $"-vf scale=-2:'min({Height(vq)},ih)':flags=bicubic,format=yuv420p -c:v libx264 -preset veryfast -crf 28 -g 30";
-
-    public static string AudioArgs(AudioQuality aq) => aq switch
-    {
-        AudioQuality.Aac128 => "-c:a aac -b:a 128k",
-        AudioQuality.Aac256 => "-c:a aac -b:a 256k",
-        _ => "-c:a pcm_s16le"
     };
 
     public static string Extension(AudioQuality aq, bool hasAudio) =>
