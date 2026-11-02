@@ -232,6 +232,12 @@ Lenses: Acceptance and Adversarial (subagents, change judged small/low-risk); ev
 - [x] [Review][Patch] `dotnet test` creates `TestResults/` at the repo root `.gitignore` — fixed after the user's decision.
 - [Review][Dismiss] `ForAll` could throw on Windows if `ScreenInfo.GetMonitors()` were empty — unreachable: `Screen.AllScreens` falls back to the primary screen (`dotnet/winforms` release/10.0 `src/System.Windows.Forms/System/Windows/Forms/Screen.cs:115,119`).
 - [Review][Dismiss] Story bookkeeping incomplete — the lens read the story before it was filled in.
+- [x] [Review][Patch] PR #1 code review: odd channel count branch of the downmix untested `tests/MyScreenRecorder.Core.Tests/StereoDownmixSampleProviderTests.cs` — fixed (`ThreeChannels_AverageTwoChannelsLeftAndOneRight`).
+- [x] [Review][Patch] PR #1 code review: `?? new Settings()` for a `null` file untested `tests/MyScreenRecorder.Core.Tests/SettingsTests.cs` — fixed (`Load_NullJson_ReturnsDefaults`).
+- [x] [Review][Patch] PR #1 code review: `ForRegion` with an empty monitor list untested `tests/MyScreenRecorder.Core.Tests/CaptureTargetTests.cs` — fixed (`ForRegion_EmptyMonitorList_IsNotClamped`).
+- [x] [Review][Patch] PR #1 code review: `CLAUDE.md` docstring rule contradicted D7 — fixed (Conventions points to D7).
+- [x] [Review][Patch] PR #1 code review: File List marked the architecture doc UPDATED — fixed (CREATED; planning docs listed).
+- [Review][Defer] PR #1 code review: a region touching the monitor edge yields a zero-width target (`Rectangle.Intersect` returns a zero-size rectangle, `IsEmpty` needs all four fields zero); same at `b6259ee`, not caused by this story.
 - [Review][Defer→AC7] Union of `Screen.AllScreens` bounds equals `SystemInformation.VirtualScreen` cannot be checked on Linux — covered by Windows smoke W5 (ALL target) and W1.
 
 ### File List
@@ -259,9 +265,11 @@ Lenses: Acceptance and Adversarial (subagents, change judged small/low-risk); ev
 - `tests/MyScreenRecorder.Core.Tests/AppPathsTests.cs` (CREATED)
 - `tests/MyScreenRecorder.Core.Tests/StereoDownmixSampleProviderTests.cs` (CREATED)
 - `tests/MyScreenRecorder.Core.Tests/ProcessEnvironmentCollection.cs` (CREATED — review)
-- `docs/planning/linux-build-architecture.md` (UPDATED — §5.11 Settings row: `DoNotVerify`)
+- `docs/planning/linux-build-architecture.md` (CREATED — first added to the repo on this branch; §5.11 Settings row records `DoNotVerify`)
+- `docs/planning/epics-linux-build.md`, `docs/implementation/sprint-status.yaml`, this story (CREATED — planning documents first added on this branch)
 
 ## Change Log
 
 - 2026-10-29: Story created (ready-for-dev).
 - 2026-10-29: Implemented Tasks 1–9 (Windows smoke pending); review fixes: `DoNotVerify` in `AppPaths`, non-parallel environment tests, `ForAll` even-size and `Save` error tests, `TestResults/` ignored. Status → review.
+- 2026-11-02: PR #1 code review fixes: tests for 3-channel downmix, `null` settings file, `ForRegion` with no monitors; `CLAUDE.md` docstring rule points to D7; File List corrected.

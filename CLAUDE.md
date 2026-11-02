@@ -37,4 +37,4 @@ The recording pipeline spans several files and is the part worth understanding b
 ## Conventions
 
 - `ImplicitUsings` is disabled; add `using` directives explicitly. `Nullable` is enabled.
-- The parent workspace `E:\apps\AGENTS.md` asks for concise docstring annotations (purpose, input assumptions, output contract, side effects, failure modes, security notes — at least 3) on non-trivial functions you add or change, and for existing annotations to be updated when behavior changes. The current code has few of these; follow the rule for new/edited code.
+- The parent workspace `E:\apps\AGENTS.md` asks for concise docstring annotations (purpose, input assumptions, output contract, side effects, failure modes, security notes — at least 3) on non-trivial functions you add or change, and for existing annotations to be updated when behavior changes. The current code has few of these. Decision D7 (`docs/planning/linux-build-architecture.md` §2) narrows this rule: short docstrings only on the platform interfaces in Core and on native wrappers; elsewhere, comments only for non-obvious reasons.

@@ -24,6 +24,14 @@ public class StereoDownmixSampleProviderTests
     }
 
     [Fact]
+    public void ThreeChannels_AverageTwoChannelsLeftAndOneRight()
+    {
+        float[] output = ReadOneFrame(new ArraySampleProvider(3, 1f, 4f, 3f));
+
+        Assert.Equal(new[] { 2f, 4f }, output);
+    }
+
+    [Fact]
     public void Stereo_PassesThrough()
     {
         float[] output = ReadOneFrame(new ArraySampleProvider(2, 0.5f, -0.5f));

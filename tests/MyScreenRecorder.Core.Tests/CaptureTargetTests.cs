@@ -90,6 +90,15 @@ public class CaptureTargetTests
     }
 
     [Fact]
+    public void ForRegion_EmptyMonitorList_IsNotClamped()
+    {
+        CaptureTarget target = CaptureTarget.ForRegion(new Rectangle(10, 10, 201, 101), Array.Empty<MonitorInfo>(), 1);
+
+        Assert.Equal(new Rectangle(10, 10, 200, 100), target.Bounds);
+        Assert.Equal("REGION 200x100 @MON 1", target.Label);
+    }
+
+    [Fact]
     public void ForMonitor_ForcesEvenSize()
     {
         CaptureTarget target = CaptureTarget.ForMonitor(new MonitorInfo(1, new Rectangle(0, 0, 1365, 767), true));

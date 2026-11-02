@@ -54,6 +54,15 @@ public sealed class SettingsTests : IDisposable
     }
 
     [Fact]
+    public void Load_NullJson_ReturnsDefaults()
+    {
+        string path = Path.Combine(_dir.FullName, "settings.json");
+        File.WriteAllText(path, "null");
+
+        AssertDefaults(Settings.Load(path));
+    }
+
+    [Fact]
     public void Save_IntoMissingDirectory_CreatesItAndWritesEnumsAsStrings()
     {
         string path = Path.Combine(_dir.FullName, "MyScreenRecorder", "settings.json");
