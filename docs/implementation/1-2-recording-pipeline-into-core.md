@@ -1,6 +1,6 @@
 # Story 1.2: Recording pipeline into Core behind process/grab/pipe seams
 
-Status: review
+Status: done
 
 ## Story
 
@@ -142,7 +142,7 @@ Decisions of the architecture document (D1–D11) are not reopened here. The ent
   - [x] Guard checks on a copy of the tree, each must fail the named test for that reason (the guard removed, the new negative test run once): see "Guard checks" in Testing Requirements.
   - [x] Comments: `git diff -U0 | grep -E '^\+\s*(#|//|--)'` and the new files: only the D7 docstrings on `IChildProcessLauncher`, `IAudioPipe`, `IAudioPipeFactory`, `JobObjectProcessLauncher`; the fake ffmpeg script's comment-free text is in Dev Notes.
   - [x] Walk the Definition of Done (`docs/planning/epics-linux-build.md` §3) item by item in the Dev Agent Record.
-  - [ ] Ask the user to run the Windows smoke checklist W1–W9 on a build of this branch (`.\build.ps1`, no ffmpeg on `PATH`, none beside the exe); record the result in the Dev Agent Record.
+  - [x] Ask the user to run the Windows smoke checklist W1–W9 on a build of this branch (`.\build.ps1`, no ffmpeg on `PATH`, none beside the exe); record the result in the Dev Agent Record.
   - [x] Every error found while implementing (analysis, test, lint, review) goes to the error log: `python3 /home/timmy/.agents/skills/learn-from-review/scripts/error_log.py add '<JSON>'` (global rule).
 
 ## Dev Notes
@@ -482,14 +482,14 @@ Claude Sonnet 5.5 (dev agent); reviewer lenses: sonnet, medium effort.
 - Core purity grep: only `GdiGrab.cs` lines for `gdigrab` and `__COMPAT_LAYER`.
 - Guard checks on a copy of the tree (script in the session scratchpad), mutation -> failing tests: (a) EncoderArgs loop removed -> X11 with/without audio; (b) ApplyEnvironment removed -> Windows_FlagsAndEnvironment, S1; (c) `& ~1` removed -> OddBounds, both golden Windows lists; `Math.Max` removed (width, height) -> TinyBounds; (d) `';'` separator -> Path tests; (e) beside check removed -> BesideExecutable_Wins and all session tests; cache re-check removed -> Resolve_Caches...; `Trim('"')` removed -> Path_EntriesAreTrimmed...; (f) pipe created after start -> S3 ordering and others; (g) DisposePipe in start-failure catch -> S6; (h) ReleaseResources in connect-failure catch -> S7, S8; (i) Kill in connect-failure catch -> S8 only after adding an elapsed-time assertion (< 2.5 s; before that no test failed because disposing the Process closes stdin and the fake exits); (j) `_stopping` in StopCoreAsync -> S1, R5, R8, R9; (k) Interlocked once-only -> only after adding S10_ExitedHandlerFiringAgain... (reflection call of `OnExited`; before no test failed, the race is not reachable by timing); (l) `q` write -> S1 (under 10 s); (m) kill fallback -> S12; (n) concat via launcher -> R3, R5, R7, R11; (o) BOM -> R9, R3, R5, R7; (p) LastError texts -> R9, R10, R11, R16, R13; (q) parts delete on success -> R3, R5; in Cancel -> R8, R16; in start failure -> R12; (r) Extension -> R7 (audio Wav); (s) OutputFolder fallback -> AC6 Movies-missing and no-user-dirs and many session tests; swallow removed -> AC6 file-in-place; (t) end-of-StartAsync exit check -> only after adding S10_ExitBetweenPipeConnectAndActivation (fake pipe `Stream` getter delays so the exit happens between connect and `_active = true`); (u) invariant culture removed from `GdiGrab` -> Grabs_FormatNumbersWithInvariantCulture (the test first used `de-DE`, which cannot fail; changed to `sv-SE`, whose negative sign differs).
 - No test fails (recorded as deferred, guard kept): `ExtractEmbedded` null checks for `ResourceAssembly` / `ResourceName` (e4, e5): a removed check yields a NullReferenceException or an unmatched name, both swallowed by the surrounding `catch` and returning `null`, the same result. Not observable.
-- Windows smoke W1-W9: pending (user).
+- Windows smoke result: W1–W9 passed (reported by the user on 2026-11-03).
 
 ### Completion Notes List
 
 - Seams, grabs, locator options, moved pipeline, `AppPaths.OutputFolder`, Windows implementations, composition root and `CLAUDE.md` done per the Decision Record. `README.md`: no change (no user-facing path, command or behaviour changes).
 - Deviation: `BuildStartInfo` starts with `bool hasAudio = audioInput != null;` (a local, not in the edit list). The behaviour tests skip on Windows in the test class constructors (`Assert.SkipWhen`) instead of per test. `AppPathsTests` also clears `XDG_VIDEOS_DIR` (an inherited value would win over the file).
 - Extra tests beyond the story tables: S10 (two variants), S3 session id/index, locator `Resolve_ReadsOnlyThePathVariable`.
-- DoD (epics doc section 3): 1 every AC passes except AC7 (Windows smoke pending); 2 build 0 warnings 0 errors; 3 tests pass (3 runs); 4 guard checks done, see log (two guards unobservable, deferred); 5 comments: only the D7 docstrings on the three interfaces and `JobObjectProcessLauncher`; 6 `CLAUDE.md` updated, `README.md` not applicable; 7 Windows smoke pending (user); 8 Linux smoke not applicable (no Linux story); 9 nothing committed or pushed.
+- DoD (epics doc section 3): 1 every AC passes (AC7: Windows smoke W1–W9 passed); 2 build 0 warnings 0 errors; 3 tests pass (3 runs); 4 guard checks done, see log (two guards unobservable, deferred); 5 comments: only the D7 docstrings on the three interfaces and `JobObjectProcessLauncher`; 6 `CLAUDE.md` updated, `README.md` not applicable; 7 Windows smoke W1–W9 passed (user, 2026-11-03); 8 Linux smoke not applicable (no Linux story); 9 nothing committed or pushed.
 
 ### Review Findings
 
@@ -537,3 +537,4 @@ Pre-existing (bookkeeping, untouched except tracker/status edits): `docs/impleme
 - 2026-11-03: Implemented by dev agent; status review. Windows smoke pending (user).
 - 2026-11-03: QA verification: PASS WITH CONCERNS (minor only); hand-offs to 2-2/2-3 recorded in the epic. Windows smoke pending (user).
 - 2026-11-03: Full review (two reviewers + verification): 8 minor findings fixed, 4 new tests (172/172), launcher failure contract written into the interface and architecture §4. Windows smoke pending (user).
+- 2026-11-03: Windows smoke W1–W9 passed (user). PR #3 merged. Status → done.
