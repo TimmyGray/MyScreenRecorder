@@ -1,6 +1,6 @@
 # Story 1.1: Core and test projects; move platform-neutral types
 
-Status: review
+Status: done
 
 ## Story
 
@@ -99,12 +99,12 @@ so that the Linux build can reuse the Windows recorder's logic without changing 
   - [x] `tests/MyScreenRecorder.Core.Tests/StereoDownmixSampleProviderTests.cs`: mono `[a]` → `[a,a]`; 4 channels `[1,2,3,4]` → `[2,3]` (even channels averaged left, odd right); stereo passes through.
 - [x] Task 8: Docs (AC: 1, 2)
   - [x] `CLAUDE.md` (UPDATE): Commands gain `dotnet build MyScreenRecorder.sln -c Debug` (works on Linux via `EnableWindowsTargeting`) and `dotnet test --solution MyScreenRecorder.sln`; replace "There are no tests…"; drop the sentence about `-g` being duplicated in `VideoArgs`; add one line that `Quality`, `Settings`/`AppPaths`, `CaptureTarget`/`MonitorInfo`, `StereoDownmixSampleProvider`, `AudioDeviceInfo` live in `src/MyScreenRecorder.Core` (`net10.0`).
-- [ ] Task 9: Verification (AC: all)
+- [x] Task 9: Verification (AC: all)
   - [x] `dotnet build MyScreenRecorder.sln -c Debug` (0 errors; compare warnings with `b6259ee`).
   - [x] `dotnet test --solution MyScreenRecorder.sln`.
   - [x] Guard checks: on a copy, remove (a) the empty-list `ArgumentException`, (b) `clamped.IsEmpty ? monitor.Bounds : clamped`, (c) the `monitor != null` check, (d) the `catch` in `Settings.Load(path)`; each matching test fails for that reason.
   - [x] `git diff -U0 | grep -E '^\+\s*(//|///)'`: no comments except what D7 allows (none expected in this story).
-  - [ ] Ask the user to run the Windows smoke checklist on a build of this branch; record the result in the Dev Agent Record.
+  - [x] Ask the user to run the Windows smoke checklist on a build of this branch; record the result in the Dev Agent Record.
 
 ## Dev Notes
 
@@ -217,8 +217,8 @@ Baseline revision: `b6259ee1d9c7382ee9d0919fedc25c6a0ab95a4a`
 - `AppPaths.SettingsFile` uses `SpecialFolderOption.DoNotVerify` (Decision Record, review). The story text prescribed the default option; the change was approved by the user.
 - `AppPathsTests` change `HOME`/`XDG_CONFIG_HOME`; they run in `ProcessEnvironmentCollection` (parallelization disabled). Future tests that change or read the process environment belong in that collection.
 - Added tests beyond the story list, from review: `ForAll_ForcesEvenSize`, `Save_Failure_IsSwallowed`, `SettingsFile_OnLinux_IsUnderXdgConfigHomeThatDoesNotExistYet`, `SettingsFile_OnLinux_FallsBackToHomeConfigEvenWhenItDoesNotExistYet` (null, empty, relative).
-- AC7 (Windows smoke W1–W9) is pending: the user runs it on a Windows build of this branch; the result goes below.
-- Windows smoke result: _pending_.
+- AC7 (Windows smoke W1–W9) passed; see below.
+- Windows smoke result: W1–W9 passed (reported by the user on 2026-11-02, build of main after PR #1).
 
 ### Review Findings
 
@@ -273,3 +273,4 @@ Lenses: Acceptance and Adversarial (subagents, change judged small/low-risk); ev
 - 2026-10-29: Story created (ready-for-dev).
 - 2026-10-29: Implemented Tasks 1–9 (Windows smoke pending); review fixes: `DoNotVerify` in `AppPaths`, non-parallel environment tests, `ForAll` even-size and `Save` error tests, `TestResults/` ignored. Status → review.
 - 2026-11-02: PR #1 code review fixes: tests for 3-channel downmix, `null` settings file, `ForRegion` with no monitors; `CLAUDE.md` docstring rule points to D7; File List corrected.
+- 2026-11-02: Windows smoke W1–W9 passed (user report). PR #1 merged. Status → done.

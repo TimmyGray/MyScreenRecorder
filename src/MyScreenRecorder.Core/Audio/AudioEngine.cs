@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using MyScreenRecorder.Platform;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
@@ -13,6 +14,7 @@ public sealed class AudioEngine : IDisposable
     private const int Rate = 48000;
     private const int ChunkFrames = 4800;
 
+    private readonly IAudioCaptureFactory _captures;
     private readonly object _gate = new();
     private Thread? _thread;
     private volatile bool _running;
@@ -21,6 +23,11 @@ public sealed class AudioEngine : IDisposable
     private MixingSampleProvider? _mixer;
     private List<AudioSource> _armedSources = new();
     private bool _disposed;
+
+    public AudioEngine(IAudioCaptureFactory captures)
+    {
+        _captures = captures;
+    }
 
     public AudioSource? Mic { get; private set; }
 
@@ -74,7 +81,8 @@ public sealed class AudioEngine : IDisposable
         AudioSource? source = null;
         try
         {
-            source = new AudioSource(deviceId, loopback);
+            IAudioCapture capture = _captures.Open(deviceId, loopback);
+            source = new AudioSource(capture);
             source.Start();
             return source;
         }

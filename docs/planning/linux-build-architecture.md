@@ -136,7 +136,7 @@ Pure builders in Core (`MyScreenRecorder.Recording`):
   - `GdiGrab`: exactly today's args (`-f gdigrab -framerate 15 -draw_mouse 1 -offset_x X -offset_y Y -video_size WxH -thread_queue_size 1024 -i desktop`), `EncoderArgs` empty, environment `__COMPAT_LAYER=HighDpiAware`.
   - `X11Grab(string display)`: `-f x11grab -framerate 15 -draw_mouse 1 -video_size WxH -thread_queue_size 1024 -i <display>+X,Y`, `EncoderArgs` = `-x264-params sliced-threads=1` (D8), no environment change.
 - `FfmpegLocatorOptions(string ExecutableName, Assembly? ResourceAssembly, string? ResourceName, string ExtractDirectory)`. The locator splits `PATH` with `Path.PathSeparator`. Windows: `("ffmpeg.exe", <WPF assembly>, "ffmpeg.exe", %LOCALAPPDATA%\MyScreenRecorder)`. Linux: `("ffmpeg", null, null, <unused>)`.
-- `PlatformServices` record: grows as stories add seams (1.2: launcher, pipes, grab, ffmpeg options; 1.3: capture factory, device catalog; 1.4: screen catalog).
+- `PlatformServices` record: grows as stories add seams (1.3: capture factory, device catalog; 1.2: launcher, pipes, grab, ffmpeg options; 1.4: screen catalog).
 
 ## 5. Linux design per area
 
