@@ -5,8 +5,8 @@ planning: docs/planning/epics-linux-build.md
 development_status:
   epic-1: in-progress
   1-1-core-and-test-projects: done                 # Core; Windows smoke passed 2026-11-02
-  1-2-recording-pipeline-into-core: backlog       # Core; Windows smoke; needs 1-1, 1-3
-  1-3-audio-capture-seam: review                  # Core; Windows smoke passed 2026-11-03; needs 1-1; before 1-2
+  1-2-recording-pipeline-into-core: review        # Core; Windows smoke; needs 1-1, 1-3 (both done)
+  1-3-audio-capture-seam: done                    # Core; Windows smoke passed 2026-11-03; PR #2 merged; needs 1-1; before 1-2
   1-4-recorder-controller: backlog                # Core; needs 1-2, 1-3
   epic-1-retrospective: optional
   epic-2: backlog

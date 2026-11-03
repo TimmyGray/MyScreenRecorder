@@ -1,6 +1,6 @@
 # Story 1.3: Audio capture seam
 
-Status: review
+Status: done
 
 ## Story
 
@@ -251,4 +251,4 @@ The four reviewer subagents (Adversarial, Edge-case, Verification gap, Acceptanc
 
 - 2026-11-02: Story created (ready-for-dev). Sequenced before 1.2 (Decision Record).
 - 2026-11-03: Implemented Tasks 1–8 and Task 9 verification (Windows smoke pending); review fixes: `Dispose_ResetsPeak`, pump branch tests, docstring wording. Status → review.
-- 2026-11-03: Windows smoke W1–W9 passed (user report).
+- 2026-11-03: Windows smoke W1–W9 passed (user report). PR #2 merged. Status → done.

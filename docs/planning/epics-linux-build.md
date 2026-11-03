@@ -97,7 +97,7 @@ Story keys are `<epic>-<story>-<slug>`; each story is one PR.
 - AC5 **Windows unchanged.** The user's Windows smoke checklist passes.
 
 **1-2 Recording pipeline into Core behind process/grab/pipe seams** — *Windows smoke* — NFR1, NFR2 — needs 1-1, 1-3
-- Adds `IChildProcessLauncher`, `IAudioPipe(Factory)`, `ScreenGrab`/`GdiGrab`/`X11Grab`, `FfmpegLocatorOptions`, `PlatformServices`; moves `SegmentWriter`, `RecordingSession`, `FfmpegLocator` to Core; `AppPaths.OutputFolder`; Windows implementations (`JobObjectProcessLauncher`, `WindowsNamedPipeFactory`) in `src/MyScreenRecorder/Platform/Windows/`.
+- Adds `IChildProcessLauncher`, `IAudioPipe(Factory)`, `ScreenGrab`/`GdiGrab`/`X11Grab`, `FfmpegLocatorOptions`; extends `PlatformServices` (created in 1-3 with `AudioCaptures`, `AudioDevices`) with the launcher, pipe factory, grab and ffmpeg options; moves `SegmentWriter`, `RecordingSession`, `FfmpegLocator` to Core; `AppPaths.OutputFolder`; Windows implementations (`JobObjectProcessLauncher`, `WindowsNamedPipeFactory`) in `src/MyScreenRecorder/Platform/Windows/`.
 - AC1 **Byte-identical Windows args.** Given the Windows seams, when a segment's start info is built (with audio and without), then the argument list and environment equal today's (`SegmentWriter.BuildStartInfo` at commit `b6259ee`).
 - AC2 **X11 args.** Given `X11Grab(":0")`, bounds (1920,0,2560×1440), P720, AAC 256K, then the arguments are the x11grab input from the architecture §4, the `unix:` audio input, the `Quality` args, and `-x264-params sliced-threads=1`.
 - AC3 **Embedded ffmpeg found.** Given `FfmpegLocatorOptions` with the WPF assembly, when `PATH` has no ffmpeg and none is beside the exe, then the embedded resource is extracted and returned (Windows smoke W1).
@@ -127,13 +127,13 @@ Story keys are `<epic>-<story>-<slug>`; each story is one PR.
 - AC3 Given an X11 session, then the window opens with title `MY SCREEN RECORDER`.
 
 **2-2 Linux process launcher** — NFR2 — needs 1-2, 2-1
-- `LinuxChildProcessLauncher` (architecture §5.1).
+- `LinuxChildProcessLauncher` (architecture §5.1). `Start` throws only when the process did not start; once it has started, wrapper/registration failures are handled inside the launcher, never thrown (hand-off from story 1-2: `SegmentWriter` does not kill a process whose `Start` threw).
 - AC1 Given a child started through the launcher from a `Task.Run` continuation, when 30 s pass, then the child is alive (Integration).
 - AC2 Given a child ffmpeg recording through the launcher, when the test host is killed with `SIGKILL`, then the child is gone within 1 s and its MKV is valid (Integration).
 - AC3 Given no `setpriv` with `--pdeathsig` (injected probe result), then processes start unwrapped and are killed on `ProcessExit`.
 
 **2-3 ffmpeg on Linux: locator, x11grab, Unix-socket audio** — FR1, NFR3 — needs 2-2
-- `UnixSocketPipeFactory`, Linux `FfmpegLocatorOptions`, capability check (architecture §5.4, §5.5).
+- `UnixSocketPipeFactory`, Linux `FfmpegLocatorOptions`, capability check (architecture §5.4, §5.5). First probe `-i :0+1920,0` (display without screen number) with the pinned BtbN ffmpeg; if it fails, stop and ask (hand-off from story 1-2). Keep Linux `FfmpegLocatorOptions.ResourceAssembly = null`: the moved embedded-extraction path sets no execute bit.
 - AC1 Socket path rules: rooted under `XDG_RUNTIME_DIR`; fallback when unset/missing/longer than 107 bytes.
 - AC2 Given a 3 s sine pumped through `AudioEngine` into a real segment, then the MKV has video and audio and audio ≥ video − 0.4 s (Integration).
 - AC3 Given an ffmpeg without x11grab (fake `-devices` output), then the check fails with the §5.5 message.

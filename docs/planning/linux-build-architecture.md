@@ -2,6 +2,8 @@
 
 Status: agreed with the product owner on 2026-10-28/29. Input for `docs/planning/epics-linux-build.md` and every story under `docs/implementation/`.
 
+Amendment 2026-11-03 (story 1.2): the edits in §1 (reference code paths), §3.1 (snapshot wording), §3.4 (`AppPaths.OutputFolder`), §4 (`EncoderArgs` position, `PlatformServices` shape) and §5.11 (`AppPaths.OutputFolder`) are clarifications. Two edits are decisions made in story 1.2 on the user's delegation (recorded in that story's Decision Record): §5.5, the Linux composition root reads `DISPLAY` once at startup instead of at each segment start; §4, `IChildProcessLauncher.Start` throws only when the process did not start.
+
 This document is self-contained: an implementer needs nothing from the planning conversation. When the code or a tool behaves differently from what is written here, **stop and ask the user**; do not pick an alternative silently.
 
 ## 1. Read first (in this order)
@@ -10,7 +12,7 @@ This document is self-contained: an implementer needs nothing from the planning 
 2. This document, sections 2–5 (decisions, boundaries, seams).
 3. `docs/planning/epics-linux-build.md`: requirements (FR/NFR), working rules, Definition of Done, smoke checklists, story list.
 4. The story file you implement (`docs/implementation/<key>.md`).
-5. Reference code: `src/MyScreenRecorder/Recording/SegmentWriter.cs`, `src/MyScreenRecorder/Recording/RecordingSession.cs`, `src/MyScreenRecorder/Audio/AudioEngine.cs`, `src/MyScreenRecorder/Audio/AudioSource.cs`, `src/MyScreenRecorder/Recording/FfmpegLocator.cs`, `src/MyScreenRecorder/MainWindow.xaml.cs`.
+5. Reference code: `src/MyScreenRecorder.Core/Recording/SegmentWriter.cs`, `src/MyScreenRecorder.Core/Recording/RecordingSession.cs`, `src/MyScreenRecorder.Core/Audio/AudioEngine.cs`, `src/MyScreenRecorder.Core/Audio/AudioSource.cs`, `src/MyScreenRecorder.Core/Recording/FfmpegLocator.cs`, `src/MyScreenRecorder/MainWindow.xaml.cs`.
 
 ## 2. Decision record
 
@@ -34,7 +36,7 @@ Each decision lists the reason and the rejected alternatives. Do not reopen them
 
 ### 3.1 Current boundaries (derived, not documented)
 
-There is no architecture document. These boundaries were derived from the code: folders map 1:1 to namespaces, and the import direction was taken from the `using` directives and call sites (commit `b6259ee`).
+Snapshot of the state at commit `b6259ee`, before Epic 1 moved code (kept as history; the target is §3.2). There was no architecture document then. These boundaries were derived from the code: folders map 1:1 to namespaces, and the import direction was taken from the `using` directives and call sites (commit `b6259ee`).
 
 | Module (namespace = folder) | Holds | Depends on |
 |---|---|---|
@@ -70,7 +72,7 @@ Namespaces inside Core keep the existing ones (`MyScreenRecorder.Recording`, `.A
 
 ### 3.4 Boundary moves (approved, D9)
 
-1. `Settings` moves from the UI root to Core; the settings path moves into a new `AppPaths` (removes the duplicate path at `MainWindow.xaml.cs:50`).
+1. `Settings` moves from the UI root to Core; the settings path moves into a new `AppPaths` (removes the duplicate path at `MainWindow.xaml.cs:50`). `AppPaths` also holds `OutputFolder`, moved from `RecordingSession` in story 1.2.
 2. `CaptureTarget.ForAll`/`ForRegion` take the monitor list instead of calling `ScreenInfo`/WinForms. `ForAll` uses the union of monitor bounds (equal to `SystemInformation.VirtualScreen`, which is documented as the bounding rectangle of all displays).
 3. Recording stops referencing `Native`: process start goes through `IChildProcessLauncher` (Windows implementation wraps `KillOnCloseJob`).
 4. ffmpeg capture arguments (gdigrab, x11grab) are pure builders in Core so they are unit-testable on Linux.
@@ -85,7 +87,9 @@ Docstrings on these interfaces are required (D7). Members are the contract; a st
 public interface IChildProcessLauncher
 {
     // Starts the pre-configured process (StartInfo, events already set) and registers it for cleanup.
-    // Throws whatever Process.Start throws. Never returns before the process has started.
+    // Throws only when the process did not start (whatever Process.Start throws); once it has started,
+    // wrapping/registration failures are handled inside and never thrown (callers do not kill on catch).
+    // Never returns before the process has started.
     void Start(Process process);
 }
 
@@ -132,11 +136,11 @@ public interface IScreenCatalog
 
 Pure builders in Core (`MyScreenRecorder.Recording`):
 
-- `ScreenGrab` (abstract): `InputArgs(Rectangle bounds, int framerate)`, `EncoderArgs()` (appended after `Quality.VideoArgList`), `ApplyEnvironment(IDictionary<string, string?> environment)`.
+- `ScreenGrab` (abstract): `InputArgs(Rectangle bounds, int framerate)`, `EncoderArgs()` (appended after `Quality.VideoArgList` and before `Quality.AudioArgList`), `ApplyEnvironment(IDictionary<string, string?> environment)`.
   - `GdiGrab`: exactly today's args (`-f gdigrab -framerate 15 -draw_mouse 1 -offset_x X -offset_y Y -video_size WxH -thread_queue_size 1024 -i desktop`), `EncoderArgs` empty, environment `__COMPAT_LAYER=HighDpiAware`.
   - `X11Grab(string display)`: `-f x11grab -framerate 15 -draw_mouse 1 -video_size WxH -thread_queue_size 1024 -i <display>+X,Y`, `EncoderArgs` = `-x264-params sliced-threads=1` (D8), no environment change.
 - `FfmpegLocatorOptions(string ExecutableName, Assembly? ResourceAssembly, string? ResourceName, string ExtractDirectory)`. The locator splits `PATH` with `Path.PathSeparator`. Windows: `("ffmpeg.exe", <WPF assembly>, "ffmpeg.exe", %LOCALAPPDATA%\MyScreenRecorder)`. Linux: `("ffmpeg", null, null, <unused>)`.
-- `PlatformServices` record: grows as stories add seams (1.3: capture factory, device catalog; 1.2: launcher, pipes, grab, ffmpeg options; 1.4: screen catalog).
+- `PlatformServices` record: grows as stories add seams. After 1.3 and 1.2: `public sealed record PlatformServices(IAudioCaptureFactory AudioCaptures, IAudioDeviceCatalog AudioDevices, IChildProcessLauncher ProcessLauncher, IAudioPipeFactory AudioPipes, ScreenGrab Grab, FfmpegLocatorOptions Ffmpeg);` 1.4 adds the screen catalog.
 
 ## 5. Linux design per area
 
@@ -176,7 +180,7 @@ Pure builders in Core (`MyScreenRecorder.Recording`):
 
 ### 5.5 Video capture (story 2.3)
 
-- `X11Grab` with `display` = the `DISPLAY` environment value at segment start; coordinates are X root-window pixels (= Avalonia `Screen.Bounds`, verified against `xrandr --listmonitors`). Width/height stay even (`CaptureTarget`); odd offsets are allowed.
+- `X11Grab` with `display` = the `DISPLAY` environment value, read once at startup by the Linux composition root and passed to `X11Grab` (decided in story 1.2; `DISPLAY` does not change for a running X11 client); coordinates are X root-window pixels (= Avalonia `Screen.Bounds`, verified against `xrandr --listmonitors`). Width/height stay even (`CaptureTarget`); odd offsets are allowed.
 - Stop stays `q\n` on stdin (exit code 0). `SIGINT`/`SIGTERM` also produce valid files but exit with 255; no code may treat 255 from a signalled stop as a recording failure.
 - Never add `-shortest` (stalls the pipeline, measured).
 - Known residuals, accepted: per segment the audio ends 0.15–0.27 s before the video and starts ~65 ms ahead of it.
@@ -223,7 +227,7 @@ Pure builders in Core (`MyScreenRecorder.Recording`):
 | Settings | `SpecialFolder.ApplicationData` with `SpecialFolderOption.DoNotVerify` + `MyScreenRecorder/settings.json` (without `DoNotVerify` a missing config folder yields `""` and a relative path; decided in story 1.1) | `~/.config/MyScreenRecorder/settings.json` |
 | Sockets | `$XDG_RUNTIME_DIR` | `/run/user/1000` |
 
-`MyVideos` returns `""` when the folder does not exist (dotnet/runtime `Environment.GetFolderPathCore.Unix.cs`); the existing fallback in `RecordingSession.OutputFolder` covers it.
+`MyVideos` returns `""` when the folder does not exist (dotnet/runtime `Environment.GetFolderPathCore.Unix.cs`); the existing fallback in `AppPaths.OutputFolder` (moved from `RecordingSession.OutputFolder` in story 1.2) covers it.
 
 ### 5.12 Linux UI (stories 2.1, 3.x)
 

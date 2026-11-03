@@ -5,14 +5,29 @@ using System.Reflection;
 
 namespace MyScreenRecorder.Recording;
 
-public static class FfmpegLocator
+public sealed class FfmpegLocator
 {
-    private static readonly object Gate = new();
-    private static string? _cached;
+    private readonly FfmpegLocatorOptions _options;
+    private readonly string _baseDirectory;
+    private readonly Func<string, string?> _getEnvironmentVariable;
+    private readonly object _gate = new();
+    private string? _cached;
 
-    public static string? Resolve()
+    public FfmpegLocator(FfmpegLocatorOptions options)
+        : this(options, AppContext.BaseDirectory, Environment.GetEnvironmentVariable)
     {
-        lock (Gate)
+    }
+
+    internal FfmpegLocator(FfmpegLocatorOptions options, string baseDirectory, Func<string, string?> getEnvironmentVariable)
+    {
+        _options = options;
+        _baseDirectory = baseDirectory;
+        _getEnvironmentVariable = getEnvironmentVariable;
+    }
+
+    public string? Resolve()
+    {
+        lock (_gate)
         {
             if (_cached != null && File.Exists(_cached)) return _cached;
             _cached = ResolveCore();
@@ -20,11 +35,11 @@ public static class FfmpegLocator
         }
     }
 
-    private static string? ResolveCore()
+    private string? ResolveCore()
     {
         try
         {
-            string beside = Path.Combine(AppContext.BaseDirectory, "ffmpeg.exe");
+            string beside = Path.Combine(_baseDirectory, _options.ExecutableName);
             if (File.Exists(beside)) return beside;
         }
         catch
@@ -37,26 +52,31 @@ public static class FfmpegLocator
         return FindOnPath();
     }
 
-    private static string? ExtractEmbedded()
+    private string? ExtractEmbedded()
     {
         try
         {
-            Assembly asm = Assembly.GetExecutingAssembly();
+            Assembly? asm = _options.ResourceAssembly;
+            string? resourceName = _options.ResourceName;
+            if (asm == null || resourceName == null) return null;
+
             string? name = asm.GetManifestResourceNames().FirstOrDefault(n =>
-                string.Equals(n, "ffmpeg.exe", StringComparison.OrdinalIgnoreCase) ||
-                n.EndsWith(".ffmpeg.exe", StringComparison.OrdinalIgnoreCase));
+                string.Equals(n, resourceName, StringComparison.OrdinalIgnoreCase) ||
+                n.EndsWith("." + resourceName, StringComparison.OrdinalIgnoreCase));
             if (name == null) return null;
 
             using Stream? resource = asm.GetManifestResourceStream(name);
             if (resource == null) return null;
 
             long length = resource.Length;
-            string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyScreenRecorder");
+            string dir = _options.ExtractDirectory;
             Directory.CreateDirectory(dir);
-            string target = Path.Combine(dir, $"ffmpeg_{length}.exe");
+            string stem = Path.GetFileNameWithoutExtension(resourceName);
+            string extension = Path.GetExtension(resourceName);
+            string target = Path.Combine(dir, $"{stem}_{length}{extension}");
             if (File.Exists(target) && new FileInfo(target).Length == length) return target;
 
-            string temp = Path.Combine(dir, $"ffmpeg_{length}_{Guid.NewGuid():N}.tmp");
+            string temp = Path.Combine(dir, $"{stem}_{length}_{Guid.NewGuid():N}.tmp");
             try
             {
                 using (FileStream output = new(temp, FileMode.Create, FileAccess.Write, FileShare.None))
@@ -92,19 +112,19 @@ public static class FfmpegLocator
         }
     }
 
-    private static string? FindOnPath()
+    private string? FindOnPath()
     {
         try
         {
-            string? path = Environment.GetEnvironmentVariable("PATH");
+            string? path = _getEnvironmentVariable("PATH");
             if (string.IsNullOrEmpty(path)) return null;
-            foreach (string raw in path.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            foreach (string raw in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
             {
                 string entry = raw.Trim().Trim('"');
                 if (entry.Length == 0) continue;
                 try
                 {
-                    string candidate = Path.Combine(entry, "ffmpeg.exe");
+                    string candidate = Path.Combine(entry, _options.ExecutableName);
                     if (File.Exists(candidate)) return candidate;
                 }
                 catch

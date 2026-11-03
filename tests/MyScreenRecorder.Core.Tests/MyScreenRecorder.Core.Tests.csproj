@@ -13,6 +13,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\fake-ffmpeg.bin" LogicalName="ffmpeg.exe" />
+    <EmbeddedResource Include="Resources\fake-suffixed.bin" LogicalName="Vendor.Tools.fake.exe" />
+    <EmbeddedResource Include="Resources\fake-tool.bin" LogicalName="tool.bin" />
+    <EmbeddedResource Include="Resources\fake-noext.bin" LogicalName="noext" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\MyScreenRecorder.Core\MyScreenRecorder.Core.csproj" />
   </ItemGroup>
 
