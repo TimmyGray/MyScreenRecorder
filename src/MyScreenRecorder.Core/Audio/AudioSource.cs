@@ -1,6 +1,6 @@
 using System;
 using System.Threading;
-using NAudio.CoreAudioApi;
+using MyScreenRecorder.Platform;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
@@ -11,8 +11,7 @@ public sealed class AudioSource : IDisposable
     private const int TargetRate = 48000;
     private const long PeakTimeoutMs = 300;
 
-    private readonly MMDevice _device;
-    private readonly WasapiCapture _capture;
+    private readonly IAudioCapture _capture;
     private readonly WaveFormat _format;
     private readonly BufferedWaveProvider _buffered;
     private readonly bool _isFloat;
@@ -22,17 +21,12 @@ public sealed class AudioSource : IDisposable
     private byte[] _scratch = new byte[16384];
     private bool _disposed;
 
-    public AudioSource(string deviceId, bool loopback)
+    public AudioSource(IAudioCapture capture)
     {
-        using (var enumerator = new MMDeviceEnumerator())
-        {
-            _device = enumerator.GetDevice(deviceId);
-        }
-
+        _capture = capture;
         try
         {
-            _capture = loopback ? new WasapiLoopbackCapture(_device) : new WasapiCapture(_device);
-            var captureFormat = _capture.WaveFormat;
+            var captureFormat = _capture.Format;
             _format = captureFormat is WaveFormatExtensible ext ? ext.ToStandardWaveFormat() : captureFormat;
             _isFloat = _format.Encoding == WaveFormatEncoding.IeeeFloat;
 
@@ -52,12 +46,11 @@ public sealed class AudioSource : IDisposable
             Provider = chain;
 
             _capture.DataAvailable += OnDataAvailable;
-            _capture.RecordingStopped += OnRecordingStopped;
+            _capture.Stopped += OnStopped;
         }
         catch
         {
-            _capture?.Dispose();
-            _device.Dispose();
+            _capture.Dispose();
             throw;
         }
     }
@@ -94,14 +87,14 @@ public sealed class AudioSource : IDisposable
 
     public void Start()
     {
-        _capture.StartRecording();
+        _capture.Start();
     }
 
     public void Stop()
     {
         try
         {
-            _capture.StopRecording();
+            _capture.Stop();
         }
         catch (Exception)
         {
@@ -144,16 +137,16 @@ public sealed class AudioSource : IDisposable
         }
     }
 
-    private void OnDataAvailable(object? sender, WaveInEventArgs e)
+    private void OnDataAvailable(byte[] buffer, int bytes)
     {
         try
         {
-            _peak = ComputePeak(e.Buffer, e.BytesRecorded);
+            _peak = ComputePeak(buffer, bytes);
             Volatile.Write(ref _lastDataTicks, Math.Max(1L, Environment.TickCount64));
 
-            if (_armed && e.BytesRecorded > 0)
+            if (_armed && bytes > 0)
             {
-                _buffered.AddSamples(e.Buffer, 0, e.BytesRecorded);
+                _buffered.AddSamples(buffer, 0, bytes);
             }
         }
         catch (Exception)
@@ -161,7 +154,7 @@ public sealed class AudioSource : IDisposable
         }
     }
 
-    private void OnRecordingStopped(object? sender, StoppedEventArgs e)
+    private void OnStopped()
     {
         _peak = 0f;
         Volatile.Write(ref _lastDataTicks, 0L);
@@ -242,7 +235,7 @@ public sealed class AudioSource : IDisposable
         try
         {
             _capture.DataAvailable -= OnDataAvailable;
-            _capture.RecordingStopped -= OnRecordingStopped;
+            _capture.Stopped -= OnStopped;
         }
         catch (Exception)
         {
@@ -250,7 +243,7 @@ public sealed class AudioSource : IDisposable
 
         try
         {
-            _capture.StopRecording();
+            _capture.Stop();
         }
         catch (Exception)
         {
@@ -259,14 +252,6 @@ public sealed class AudioSource : IDisposable
         try
         {
             _capture.Dispose();
-        }
-        catch (Exception)
-        {
-        }
-
-        try
-        {
-            _device.Dispose();
         }
         catch (Exception)
         {

@@ -96,7 +96,7 @@ Story keys are `<epic>-<story>-<slug>`; each story is one PR.
 - AC4 **Old settings still load.** Given a settings.json in the current format, when it is loaded, then every field is read; given corrupt JSON, then defaults are returned.
 - AC5 **Windows unchanged.** The user's Windows smoke checklist passes.
 
-**1-2 Recording pipeline into Core behind process/grab/pipe seams** — *Windows smoke* — NFR1, NFR2 — needs 1-1
+**1-2 Recording pipeline into Core behind process/grab/pipe seams** — *Windows smoke* — NFR1, NFR2 — needs 1-1, 1-3
 - Adds `IChildProcessLauncher`, `IAudioPipe(Factory)`, `ScreenGrab`/`GdiGrab`/`X11Grab`, `FfmpegLocatorOptions`, `PlatformServices`; moves `SegmentWriter`, `RecordingSession`, `FfmpegLocator` to Core; `AppPaths.OutputFolder`; Windows implementations (`JobObjectProcessLauncher`, `WindowsNamedPipeFactory`) in `src/MyScreenRecorder/Platform/Windows/`.
 - AC1 **Byte-identical Windows args.** Given the Windows seams, when a segment's start info is built (with audio and without), then the argument list and environment equal today's (`SegmentWriter.BuildStartInfo` at commit `b6259ee`).
 - AC2 **X11 args.** Given `X11Grab(":0")`, bounds (1920,0,2560×1440), P720, AAC 256K, then the arguments are the x11grab input from the architecture §4, the `unix:` audio input, the `Quality` args, and `-x264-params sliced-threads=1`.
@@ -104,7 +104,7 @@ Story keys are `<epic>-<story>-<slug>`; each story is one PR.
 - AC4 **PATH split.** Given `PATH` built with `Path.PathSeparator` containing a directory with the executable, then the locator returns it.
 - AC5 **Windows unchanged.** Windows smoke passes.
 
-**1-3 Audio capture seam** — *Windows smoke* — FR2, FR6, NFR1 — needs 1-1 (parallel with 1-2 only if both branch from the same base; default: after 1-2)
+**1-3 Audio capture seam** — *Windows smoke* — FR2, FR6, NFR1 — needs 1-1; done before 1-2 (decided 2026-11-02: SegmentWriter needs AudioEngine in Core)
 - Adds `IAudioCapture`, `IAudioCaptureFactory`, `IAudioDeviceCatalog`; `AudioSource` becomes platform-neutral over `IAudioCapture`; `AudioEngine` moves to Core; `WasapiAudioCapture`, `MmDeviceCatalog` in the WPF project.
 - AC1 **Peaks.** Given a fake capture delivering float32, 16-, 24-, and 32-bit PCM buffers with a known maximum, then `Peak` equals that maximum (±1e-4) and drops to 0 300 ms after the last data.
 - AC2 **Armed buffering.** Given a source that is not armed, when data arrives, then nothing is buffered; when armed, then it is.
@@ -179,6 +179,6 @@ Story keys are `<epic>-<story>-<slug>`; each story is one PR.
 
 ## 7. Sequencing
 
-- **Critical path to the first Linux release:** 1-1 → 1-2 → 1-3 → 1-4 → 3-1 → {3-2, 3-3 → 3-4} → 4-1 → 4-2.
+- **Critical path to the first Linux release:** 1-1 → 1-3 → 1-2 → 1-4 → 3-1 → {3-2, 3-3 → 3-4} → 4-1 → 4-2.
 - **Parallel track:** 2-1 after 1-1; 2-2 and 2-3 after 1-2; 2-4 after 1-3. All of Epic 2 must be done before 3-1.
 - Stories touching the WPF project (1-1, 1-2, 1-3) need the user's Windows run; plan them so the user can test between them.

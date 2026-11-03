@@ -1,27 +1,30 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.Versioning;
+using MyScreenRecorder.Audio;
 using NAudio.CoreAudioApi;
 
-namespace MyScreenRecorder.Audio;
+namespace MyScreenRecorder.Platform.Windows;
 
-public static class AudioDevices
+[SupportedOSPlatform("windows")]
+internal sealed class MmDeviceCatalog : IAudioDeviceCatalog
 {
-    public static IReadOnlyList<AudioDeviceInfo> Capture()
+    public IReadOnlyList<AudioDeviceInfo> Inputs()
     {
         return Enumerate(DataFlow.Capture);
     }
 
-    public static IReadOnlyList<AudioDeviceInfo> Render()
+    public IReadOnlyList<AudioDeviceInfo> Outputs()
     {
         return Enumerate(DataFlow.Render);
     }
 
-    public static string? DefaultCaptureId()
+    public string? DefaultInputId()
     {
         return DefaultId(DataFlow.Capture);
     }
 
-    public static string? DefaultRenderId()
+    public string? DefaultOutputId()
     {
         return DefaultId(DataFlow.Render);
     }

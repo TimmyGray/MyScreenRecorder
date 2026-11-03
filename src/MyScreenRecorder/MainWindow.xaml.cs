@@ -11,6 +11,8 @@ using System.Windows.Threading;
 using MyScreenRecorder.Audio;
 using MyScreenRecorder.Capture;
 using MyScreenRecorder.Overlay;
+using MyScreenRecorder.Platform;
+using MyScreenRecorder.Platform.Windows;
 using MyScreenRecorder.Recording;
 
 namespace MyScreenRecorder;
@@ -21,7 +23,8 @@ public partial class MainWindow : Window
 
     private readonly Settings _settings;
     private readonly bool _firstRun;
-    private readonly AudioEngine _audio = new();
+    private readonly PlatformServices _platform = new(new WasapiAudioCaptureFactory(), new MmDeviceCatalog());
+    private readonly AudioEngine _audio;
     private readonly RecordingSession _session;
     private readonly OverlayManager _overlay = new();
     private readonly PreviewGrabber _preview;
@@ -46,6 +49,7 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        _audio = new AudioEngine(_platform.AudioCaptures);
         InitializeComponent();
         _firstRun = !File.Exists(AppPaths.SettingsFile);
         _settings = Settings.Load();
@@ -74,10 +78,10 @@ public partial class MainWindow : Window
         VideoQualityCycler.SetItems(_videoQualities.Select(Quality.Label).ToList(), Array.IndexOf(_videoQualities, _settings.VideoQuality));
         AudioQualityCycler.SetItems(_audioQualities.Select(Quality.Label).ToList(), Array.IndexOf(_audioQualities, _settings.AudioQuality));
 
-        _mics = AudioDevices.Capture().ToList();
-        _speakers = AudioDevices.Render().ToList();
-        MicCycler.SetItems(DeviceNames(_mics), InitialDeviceIndex(_mics, _settings.MicId, AudioDevices.DefaultCaptureId()));
-        SpeakerCycler.SetItems(DeviceNames(_speakers), InitialDeviceIndex(_speakers, _settings.SpeakerId, AudioDevices.DefaultRenderId()));
+        _mics = _platform.AudioDevices.Inputs().ToList();
+        _speakers = _platform.AudioDevices.Outputs().ToList();
+        MicCycler.SetItems(DeviceNames(_mics), InitialDeviceIndex(_mics, _settings.MicId, _platform.AudioDevices.DefaultInputId()));
+        SpeakerCycler.SetItems(DeviceNames(_speakers), InitialDeviceIndex(_speakers, _settings.SpeakerId, _platform.AudioDevices.DefaultOutputId()));
         ApplyMic();
         ApplySpeaker();
 
