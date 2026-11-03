@@ -111,8 +111,8 @@ Story keys are `<epic>-<story>-<slug>`; each story is one PR.
 - AC3 **Wall-clock pump.** Given no sources delivering data, when a segment runs ~1 s, then the pipe receives silence for the elapsed time (±10 %).
 - AC4 **Windows unchanged.** Windows smoke passes.
 
-**1-4 RecorderController** — NFR4 — needs 1-2, 1-3
-- Adds `IScreenCatalog` and `RecorderController` (Core): targets (monitors, ALL, region), device lists with `NONE`, initial selection rules from settings/first run/defaults, settings save mapping, start/pause/resume/stop/cancel, button enablement, status text with a severity enum, overlay state. Logic is taken from `MainWindow.xaml.cs`; the WPF `MainWindow` is not changed.
+**1-4 RecorderController** — NFR4 — *no Windows smoke (no WPF file changes)* — needs 1-2, 1-3
+- Adds `IScreenCatalog` and `RecorderController` (Core): targets (monitors, ALL, region), device lists with `NONE`, initial selection rules from settings/first run/defaults, settings save mapping, start/pause/resume/stop/cancel, button enablement, status text with a severity enum, overlay state. Also adds `IRecordingSession` (implemented by `RecordingSession`, so the controller is testable with a fake) and `OverlayMode` (named to avoid a clash with the WPF `OverlayState`); `IScreenCatalog` is a controller constructor parameter, not a `PlatformServices` member. Logic is taken from `MainWindow.xaml.cs`; the WPF `MainWindow` is not changed.
 - AC1 **Initial selection.** First run → default devices selected; later runs → saved ids; unknown saved id → `NONE`; saved target `All` → ALL; unknown monitor number → primary.
 - AC2 **Status texts** match today's strings: `READY`, `SAVING...`, `* REC  hh:mm:ss  N.N MB  <quality>`, `|| PAUSED  …`, `SAVED: <file>`, `CANCELED: recording discarded`, `ERROR: …`.
 - AC3 **Enablement** per state equals `MainWindow.UpdateUi` today.

@@ -4,6 +4,8 @@ Status: agreed with the product owner on 2026-10-28/29. Input for `docs/planning
 
 Amendment 2026-11-03 (story 1.2): the edits in §1 (reference code paths), §3.1 (snapshot wording), §3.4 (`AppPaths.OutputFolder`), §4 (`EncoderArgs` position, `PlatformServices` shape) and §5.11 (`AppPaths.OutputFolder`) are clarifications. Two edits are decisions made in story 1.2 on the user's delegation (recorded in that story's Decision Record): §5.5, the Linux composition root reads `DISPLAY` once at startup instead of at each segment start; §4, `IChildProcessLauncher.Start` throws only when the process did not start.
 
+Amendment 2026-11-03 (story 1.4, decision made on the user's delegation, recorded in story 1.4's Decision Record): `RecorderController` takes `IScreenCatalog` directly instead of through `PlatformServices` (§4, last bullet of the builders list); §5.8 is clarified: badges are hidden before `StartAsync`, `ResumeAsync` needs nothing.
+
 This document is self-contained: an implementer needs nothing from the planning conversation. When the code or a tool behaves differently from what is written here, **stop and ask the user**; do not pick an alternative silently.
 
 ## 1. Read first (in this order)
@@ -140,7 +142,8 @@ Pure builders in Core (`MyScreenRecorder.Recording`):
   - `GdiGrab`: exactly today's args (`-f gdigrab -framerate 15 -draw_mouse 1 -offset_x X -offset_y Y -video_size WxH -thread_queue_size 1024 -i desktop`), `EncoderArgs` empty, environment `__COMPAT_LAYER=HighDpiAware`.
   - `X11Grab(string display)`: `-f x11grab -framerate 15 -draw_mouse 1 -video_size WxH -thread_queue_size 1024 -i <display>+X,Y`, `EncoderArgs` = `-x264-params sliced-threads=1` (D8), no environment change.
 - `FfmpegLocatorOptions(string ExecutableName, Assembly? ResourceAssembly, string? ResourceName, string ExtractDirectory)`. The locator splits `PATH` with `Path.PathSeparator`. Windows: `("ffmpeg.exe", <WPF assembly>, "ffmpeg.exe", %LOCALAPPDATA%\MyScreenRecorder)`. Linux: `("ffmpeg", null, null, <unused>)`.
-- `PlatformServices` record: grows as stories add seams. After 1.3 and 1.2: `public sealed record PlatformServices(IAudioCaptureFactory AudioCaptures, IAudioDeviceCatalog AudioDevices, IChildProcessLauncher ProcessLauncher, IAudioPipeFactory AudioPipes, ScreenGrab Grab, FfmpegLocatorOptions Ffmpeg);` 1.4 adds the screen catalog.
+- `PlatformServices` record: grows as stories add seams. After 1.3 and 1.2: `public sealed record PlatformServices(IAudioCaptureFactory AudioCaptures, IAudioDeviceCatalog AudioDevices, IChildProcessLauncher ProcessLauncher, IAudioPipeFactory AudioPipes, ScreenGrab Grab, FfmpegLocatorOptions Ffmpeg);` Amended in story 1.4: `PlatformServices` does **not** gain the screen catalog (a seventh positional member would force an edit of `MainWindow.xaml.cs:26`); `RecorderController` takes `IScreenCatalog` as its own constructor parameter.
+- `IRecordingSession` (Core, namespace `MyScreenRecorder.Recording`, added in story 1.4): the members of `RecordingSession` that `RecorderController` uses; implemented by `RecordingSession`, used by `RecorderController`, faked in the controller tests. `OverlayMode` (`Idle`, `Recording`, `Paused`; Core, namespace `MyScreenRecorder.Controller`) is the controller's overlay state, named apart from the WPF `OverlayState`.
 
 ## 5. Linux design per area
 
@@ -201,7 +204,7 @@ Pure builders in Core (`MyScreenRecorder.Recording`):
 ### 5.8 Overlays (story 3.4)
 
 - X11 has no `WDA_EXCLUDEFROMCAPTURE`: any window over the capture area is recorded (verified pixel-exact).
-- **Badges** (monitor number) are shown only while Idle. **Trap:** today the overlay state changes after `StartAsync` returns, i.e. after ffmpeg has started. The Linux UI must hide the badges **before** calling `StartAsync`/`ResumeAsync`.
+- **Badges** (monitor number) are shown only while Idle. **Trap:** today the overlay state changes after `StartAsync` returns, i.e. after ffmpeg has started. The Linux UI must hide the badges **before** calling `StartAsync`. `ResumeAsync` needs no such step: `Paused` is already non-idle and badges are shown only while `Idle` (amended in story 1.4).
 - **Border** is drawn only for REGION targets, and only the edges that lie fully outside the captured rectangle after clamping to the monitor (an edge that would overlap the rectangle is not drawn). Full-monitor and ALL targets have no border on Linux; the status line shows the state.
 - Mechanism: raw Xlib override-redirect windows on the app's own `XOpenDisplay` connection, input made click-through with `XShapeCombineRectangles(…, ShapeInput, 0 rectangles, ShapeSet)` (`libXext.so.6`), verified by probe. Avalonia windows are **not** used for overlays: they are WM-managed (Muffin moves windows away from panels and monitor edges, measured), steal focus unless `ShowActivated=false`, and have no window-level click-through API (only popups; the GLX child render window keeps receiving input).
 - Badge content (number in the pixel font) is rendered by Avalonia `RenderTargetBitmap` and copied into the X window with `XPutImage`.

@@ -22,7 +22,7 @@ public enum RecordingState
 
 public sealed record SessionStats(TimeSpan Duration, long Bytes, string QualityLabel);
 
-public sealed class RecordingSession : IDisposable
+public sealed class RecordingSession : IRecordingSession, IDisposable
 {
     private readonly AudioEngine _audio;
     private readonly FfmpegLocator _ffmpeg;
