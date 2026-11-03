@@ -2,13 +2,12 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.IO.Pipes;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MyScreenRecorder.Audio;
 using MyScreenRecorder.Capture;
-using MyScreenRecorder.Native;
+using MyScreenRecorder.Platform;
 
 namespace MyScreenRecorder.Recording;
 
@@ -24,11 +23,14 @@ public sealed class SegmentWriter
     private readonly AudioQuality _audioQuality;
     private readonly AudioEngine _audio;
     private readonly string _sessionId;
+    private readonly IChildProcessLauncher _launcher;
+    private readonly IAudioPipeFactory _pipes;
+    private readonly ScreenGrab _grab;
     private readonly TaskCompletionSource<bool> _exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly object _gate = new();
 
     private Process? _process;
-    private NamedPipeServerStream? _pipe;
+    private IAudioPipe? _pipe;
     private Task? _stdoutTask;
     private Task? _stderrTask;
     private Task? _stopTask;
@@ -38,7 +40,7 @@ public sealed class SegmentWriter
     private volatile bool _audioBegun;
     private int _faultRaised;
 
-    public SegmentWriter(string ffmpegPath, string partsDir, int index, CaptureTarget target, VideoQuality vq, AudioQuality aq, AudioEngine audio, string sessionId)
+    public SegmentWriter(string ffmpegPath, string partsDir, int index, CaptureTarget target, VideoQuality vq, AudioQuality aq, AudioEngine audio, string sessionId, IChildProcessLauncher launcher, IAudioPipeFactory pipes, ScreenGrab grab)
     {
         _ffmpegPath = ffmpegPath;
         _partsDir = partsDir;
@@ -48,6 +50,9 @@ public sealed class SegmentWriter
         _audioQuality = aq;
         _audio = audio;
         _sessionId = sessionId;
+        _launcher = launcher;
+        _pipes = pipes;
+        _grab = grab;
         FilePath = Path.Combine(partsDir, $"seg_{index:D3}.mkv");
     }
 
@@ -67,20 +72,29 @@ public sealed class SegmentWriter
     {
         Directory.CreateDirectory(_partsDir);
         bool hasAudio = _audio.HasAudio;
-        string pipeName = $"srec_{_sessionId}_{_index}";
 
         if (hasAudio)
         {
-            _pipe = new NamedPipeServerStream(pipeName, PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly, 0, 1 << 20);
+            _pipe = _pipes.Create(_sessionId, _index);
         }
 
-        ProcessStartInfo psi = BuildStartInfo(hasAudio, pipeName);
+        ProcessStartInfo psi;
+        try
+        {
+            psi = BuildStartInfo(hasAudio ? _pipe!.FfmpegInput : null);
+        }
+        catch
+        {
+            DisposePipe();
+            throw;
+        }
+
         Process process = new() { StartInfo = psi, EnableRaisingEvents = true };
         process.Exited += OnExited;
 
         try
         {
-            process.Start();
+            _launcher.Start(process);
         }
         catch
         {
@@ -91,13 +105,6 @@ public sealed class SegmentWriter
         }
 
         _process = process;
-        try
-        {
-            KillOnCloseJob.Assign(process);
-        }
-        catch
-        {
-        }
 
         _stdoutTask = Task.Run(() => ReadStdoutAsync(process));
         _stderrTask = Task.Run(() => ReadStderrAsync(process));
@@ -115,7 +122,7 @@ public sealed class SegmentWriter
                 }
 
                 await connect.ConfigureAwait(false);
-                _audio.BeginSegment(_pipe!);
+                _audio.BeginSegment(_pipe!.Stream);
                 _audioBegun = true;
             }
             catch (Exception ex)
@@ -149,11 +156,11 @@ public sealed class SegmentWriter
         }
     }
 
-    private ProcessStartInfo BuildStartInfo(bool hasAudio, string pipeName)
+    internal ProcessStartInfo BuildStartInfo(string? audioInput)
     {
+        bool hasAudio = audioInput != null;
         System.Drawing.Rectangle b = _target.Bounds;
-        int width = Math.Max(2, b.Width & ~1);
-        int height = Math.Max(2, b.Height & ~1);
+        System.Drawing.Rectangle even = new(b.X, b.Y, Math.Max(2, b.Width & ~1), Math.Max(2, b.Height & ~1));
 
         ProcessStartInfo psi = new()
         {
@@ -166,7 +173,7 @@ public sealed class SegmentWriter
             RedirectStandardError = true,
             StandardInputEncoding = new UTF8Encoding(false)
         };
-        psi.Environment["__COMPAT_LAYER"] = "HighDpiAware";
+        _grab.ApplyEnvironment(psi.Environment);
 
         var args = psi.ArgumentList;
         args.Add("-hide_banner");
@@ -185,25 +192,10 @@ public sealed class SegmentWriter
             args.Add("-thread_queue_size");
             args.Add("1024");
             args.Add("-i");
-            args.Add(@"\\.\pipe\" + pipeName);
+            args.Add(audioInput!);
         }
 
-        args.Add("-f");
-        args.Add("gdigrab");
-        args.Add("-framerate");
-        args.Add("15");
-        args.Add("-draw_mouse");
-        args.Add("1");
-        args.Add("-offset_x");
-        args.Add(b.X.ToString(CultureInfo.InvariantCulture));
-        args.Add("-offset_y");
-        args.Add(b.Y.ToString(CultureInfo.InvariantCulture));
-        args.Add("-video_size");
-        args.Add(width.ToString(CultureInfo.InvariantCulture) + "x" + height.ToString(CultureInfo.InvariantCulture));
-        args.Add("-thread_queue_size");
-        args.Add("1024");
-        args.Add("-i");
-        args.Add("desktop");
+        foreach (string a in _grab.InputArgs(even, 15)) args.Add(a);
 
         args.Add("-map");
         args.Add(hasAudio ? "1:v" : "0:v");
@@ -214,6 +206,7 @@ public sealed class SegmentWriter
         }
 
         foreach (string a in Quality.VideoArgList(_videoQuality)) args.Add(a);
+        foreach (string a in _grab.EncoderArgs()) args.Add(a);
         if (hasAudio)
         {
             foreach (string a in Quality.AudioArgList(_audioQuality)) args.Add(a);
@@ -383,7 +376,7 @@ public sealed class SegmentWriter
 
     private void DisposePipe()
     {
-        NamedPipeServerStream? pipe = _pipe;
+        IAudioPipe? pipe = _pipe;
         _pipe = null;
         if (pipe != null)
         {

@@ -23,7 +23,14 @@ public partial class MainWindow : Window
 
     private readonly Settings _settings;
     private readonly bool _firstRun;
-    private readonly PlatformServices _platform = new(new WasapiAudioCaptureFactory(), new MmDeviceCatalog());
+    private readonly PlatformServices _platform = new(
+        new WasapiAudioCaptureFactory(),
+        new MmDeviceCatalog(),
+        new JobObjectProcessLauncher(),
+        new WindowsNamedPipeFactory(),
+        new GdiGrab(),
+        new FfmpegLocatorOptions("ffmpeg.exe", typeof(MainWindow).Assembly, "ffmpeg.exe", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyScreenRecorder")));
+    private readonly FfmpegLocator _ffmpeg;
     private readonly AudioEngine _audio;
     private readonly RecordingSession _session;
     private readonly OverlayManager _overlay = new();
@@ -50,10 +57,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         _audio = new AudioEngine(_platform.AudioCaptures);
+        _ffmpeg = new FfmpegLocator(_platform.Ffmpeg);
         InitializeComponent();
         _firstRun = !File.Exists(AppPaths.SettingsFile);
         _settings = Settings.Load();
-        _session = new RecordingSession(_audio);
+        _session = new RecordingSession(_audio, _platform, _ffmpeg);
         _preview = new PreviewGrabber(frame => PreviewImage.Source = frame);
         _session.StateChanged += () => Dispatcher.BeginInvoke(UpdateUi);
         _session.Faulted += message => Dispatcher.BeginInvoke(() =>
@@ -65,7 +73,7 @@ public partial class MainWindow : Window
         _statsTimer.Tick += (_, _) => UpdateStatus();
         Tips.ForTrimmed(StatusText);
         Tips.ForTrimmed(SavePathText);
-        Tips.Set(SavePathText, RecordingSession.OutputFolder);
+        Tips.Set(SavePathText, AppPaths.OutputFolder);
         Loaded += (_, _) => Initialize();
     }
 
@@ -99,7 +107,7 @@ public partial class MainWindow : Window
             SaveSettings();
         };
 
-        if (FfmpegLocator.Resolve() == null)
+        if (_ffmpeg.Resolve() == null)
         {
             _message = "ERROR: ffmpeg not found";
         }
@@ -334,7 +342,7 @@ public partial class MainWindow : Window
             }
             else
             {
-                Process.Start("explorer.exe", $"\"{RecordingSession.OutputFolder}\"");
+                Process.Start("explorer.exe", $"\"{AppPaths.OutputFolder}\"");
             }
         }
         catch (Exception ex)
@@ -357,7 +365,7 @@ public partial class MainWindow : Window
         SpeakerCycler.IsEnabled = idle;
         AudioQualityCycler.IsEnabled = idle;
         RegionButton.IsEnabled = idle;
-        RecButton.IsEnabled = idle && !_busy && FfmpegLocator.Resolve() != null;
+        RecButton.IsEnabled = idle && !_busy && _ffmpeg.Resolve() != null;
         PauseButton.IsEnabled = active && !_busy;
         PauseButton.Content = state == RecordingState.Paused ? "> RESUME" : "|| PAUSE";
         StopButton.IsEnabled = active && !_busy;

@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MyScreenRecorder.Audio;
 using MyScreenRecorder.Capture;
-using MyScreenRecorder.Native;
+using MyScreenRecorder.Platform;
 
 namespace MyScreenRecorder.Recording;
 
@@ -25,6 +25,10 @@ public sealed record SessionStats(TimeSpan Duration, long Bytes, string QualityL
 public sealed class RecordingSession : IDisposable
 {
     private readonly AudioEngine _audio;
+    private readonly FfmpegLocator _ffmpeg;
+    private readonly IChildProcessLauncher _launcher;
+    private readonly IAudioPipeFactory _pipes;
+    private readonly ScreenGrab _grab;
     private readonly SemaphoreSlim _ops = new(1, 1);
     private readonly Stopwatch _watch = new();
     private readonly List<SegmentWriter> _segments = new();
@@ -44,9 +48,13 @@ public sealed class RecordingSession : IDisposable
     private bool _hasAudio;
     private bool _disposed;
 
-    public RecordingSession(AudioEngine audio)
+    public RecordingSession(AudioEngine audio, PlatformServices platform, FfmpegLocator ffmpeg)
     {
         _audio = audio;
+        _ffmpeg = ffmpeg;
+        _launcher = platform.ProcessLauncher;
+        _pipes = platform.AudioPipes;
+        _grab = platform.Grab;
     }
 
     public event Action? StateChanged;
@@ -56,29 +64,6 @@ public sealed class RecordingSession : IDisposable
     public RecordingState State => _state;
 
     public string? LastError { get; private set; }
-
-    public static string OutputFolder
-    {
-        get
-        {
-            string videos = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
-            if (string.IsNullOrEmpty(videos))
-            {
-                videos = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Videos");
-            }
-
-            string folder = Path.Combine(videos, "MyScreenRecorder");
-            try
-            {
-                Directory.CreateDirectory(folder);
-            }
-            catch
-            {
-            }
-
-            return folder;
-        }
-    }
 
     public SessionStats Stats
     {
@@ -100,7 +85,7 @@ public sealed class RecordingSession : IDisposable
                 throw new InvalidOperationException("A recording is already in progress");
             }
 
-            string? ffmpeg = FfmpegLocator.Resolve();
+            string? ffmpeg = _ffmpeg.Resolve();
             if (ffmpeg == null)
             {
                 throw new InvalidOperationException("ffmpeg not found");
@@ -117,7 +102,7 @@ public sealed class RecordingSession : IDisposable
                 : Quality.Label(vq);
             _stamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
             _sessionId = Guid.NewGuid().ToString("N");
-            _partsDir = Path.Combine(OutputFolder, ".parts", _stamp);
+            _partsDir = Path.Combine(AppPaths.OutputFolder, ".parts", _stamp);
             Directory.CreateDirectory(_partsDir);
 
             _segments.Clear();
@@ -286,7 +271,7 @@ public sealed class RecordingSession : IDisposable
     private async Task StartSegmentAsync()
     {
         int index = _nextIndex;
-        SegmentWriter segment = new(_ffmpegPath, _partsDir, index, _target!, _videoQuality, _audioQuality, _audio, _sessionId);
+        SegmentWriter segment = new(_ffmpegPath, _partsDir, index, _target!, _videoQuality, _audioQuality, _audio, _sessionId, _launcher, _pipes, _grab);
         segment.Faulted += _ => OnSegmentFaulted(segment);
         await segment.StartAsync().ConfigureAwait(false);
         _nextIndex = index + 1;
@@ -356,7 +341,7 @@ public sealed class RecordingSession : IDisposable
             new UTF8Encoding(false));
 
         string ext = Quality.Extension(_audioQuality, _hasAudio);
-        string finalPath = Path.Combine(OutputFolder, "REC_" + _stamp + "." + ext);
+        string finalPath = Path.Combine(AppPaths.OutputFolder, "REC_" + _stamp + "." + ext);
 
         ProcessStartInfo psi = new()
         {
@@ -385,14 +370,7 @@ public sealed class RecordingSession : IDisposable
         string errors;
         using (Process process = new() { StartInfo = psi })
         {
-            process.Start();
-            try
-            {
-                KillOnCloseJob.Assign(process);
-            }
-            catch
-            {
-            }
+            _launcher.Start(process);
 
             try
             {

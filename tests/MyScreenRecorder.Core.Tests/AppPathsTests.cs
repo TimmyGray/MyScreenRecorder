@@ -9,12 +9,14 @@ public sealed class AppPathsTests : IDisposable
 {
     private readonly string? _xdgConfigHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
     private readonly string? _home = Environment.GetEnvironmentVariable("HOME");
+    private readonly string? _xdgVideosDir = Environment.GetEnvironmentVariable("XDG_VIDEOS_DIR");
     private readonly DirectoryInfo _dir = Directory.CreateTempSubdirectory("srec-apppaths-");
 
     public void Dispose()
     {
         Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", _xdgConfigHome);
         Environment.SetEnvironmentVariable("HOME", _home);
+        Environment.SetEnvironmentVariable("XDG_VIDEOS_DIR", _xdgVideosDir);
         _dir.Delete(recursive: true);
     }
 
@@ -48,5 +50,63 @@ public sealed class AppPathsTests : IDisposable
         Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", xdgConfigHome);
 
         Assert.Equal(Path.Combine(_dir.FullName, ".config", "MyScreenRecorder", "settings.json"), AppPaths.SettingsFile);
+    }
+
+    private string UseHome()
+    {
+        string home = Path.Combine(_dir.FullName, "home");
+        string config = Path.Combine(_dir.FullName, "config");
+        Directory.CreateDirectory(home);
+        Directory.CreateDirectory(config);
+        Environment.SetEnvironmentVariable("HOME", home);
+        Environment.SetEnvironmentVariable("XDG_CONFIG_HOME", config);
+        Environment.SetEnvironmentVariable("XDG_VIDEOS_DIR", null);
+        return home;
+    }
+
+    [Fact]
+    public void OutputFolder_OnLinuxWithoutUserDirs_IsUnderHomeVideosAndExists()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "XDG paths apply to Linux only");
+        string home = UseHome();
+
+        string folder = AppPaths.OutputFolder;
+
+        Assert.Equal(Path.Combine(home, "Videos", "MyScreenRecorder"), folder);
+        Assert.True(Directory.Exists(folder));
+    }
+
+    [Fact]
+    public void OutputFolder_OnLinuxWithUserDirsVideosDir_UsesItWhenItExists()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "XDG paths apply to Linux only");
+        string home = UseHome();
+        Directory.CreateDirectory(Path.Combine(home, "Movies"));
+        File.WriteAllText(Path.Combine(_dir.FullName, "config", "user-dirs.dirs"), "XDG_VIDEOS_DIR=\"$HOME/Movies\"\n");
+
+        Assert.Equal(Path.Combine(home, "Movies", "MyScreenRecorder"), AppPaths.OutputFolder);
+    }
+
+    [Fact]
+    public void OutputFolder_OnLinuxWithUserDirsVideosDirMissing_FallsBackToHomeVideos()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "XDG paths apply to Linux only");
+        string home = UseHome();
+        File.WriteAllText(Path.Combine(_dir.FullName, "config", "user-dirs.dirs"), "XDG_VIDEOS_DIR=\"$HOME/Movies\"\n");
+
+        Assert.Equal(Path.Combine(home, "Videos", "MyScreenRecorder"), AppPaths.OutputFolder);
+    }
+
+    [Fact]
+    public void OutputFolder_OnLinuxWhenFolderCannotBeCreated_StillReturnsThePath()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "XDG paths apply to Linux only");
+        string home = UseHome();
+        File.WriteAllText(Path.Combine(home, "Videos"), "a file stands here");
+
+        string folder = AppPaths.OutputFolder;
+
+        Assert.Equal(Path.Combine(home, "Videos", "MyScreenRecorder"), folder);
+        Assert.False(Directory.Exists(folder));
     }
 }
