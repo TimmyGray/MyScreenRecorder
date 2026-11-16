@@ -1,0 +1,23 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MyScreenRecorder.Linux.App"
+             RequestedThemeVariant="Dark">
+    <Application.Styles>
+        <SimpleTheme />
+    </Application.Styles>
+    <Application.Resources>
+        <ResourceDictionary>
+            <Color x:Key="BgColor">#000000</Color>
+            <Color x:Key="FgColor">#F0F0F0</Color>
+            <Color x:Key="GreenColor">#00FF66</Color>
+            <Color x:Key="RedColor">#FF2244</Color>
+            <Color x:Key="YellowColor">#FFCC00</Color>
+            <SolidColorBrush x:Key="BgBrush" Color="{StaticResource BgColor}" />
+            <SolidColorBrush x:Key="FgBrush" Color="{StaticResource FgColor}" />
+            <SolidColorBrush x:Key="GreenBrush" Color="{StaticResource GreenColor}" />
+            <SolidColorBrush x:Key="RedBrush" Color="{StaticResource RedColor}" />
+            <SolidColorBrush x:Key="YellowBrush" Color="{StaticResource YellowColor}" />
+            <FontFamily x:Key="PixelFont">avares://MyScreenRecorder/Assets/Fonts#Press Start 2P, monospace</FontFamily>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

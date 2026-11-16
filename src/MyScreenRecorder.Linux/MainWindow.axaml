@@ -1,0 +1,13 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MyScreenRecorder.Linux.MainWindow"
+        Title="MY SCREEN RECORDER" Width="640" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}" Foreground="{StaticResource FgBrush}"
+        FontFamily="{StaticResource PixelFont}" FontSize="10">
+    <StackPanel Margin="10,6,10,10">
+        <TextBlock x:Name="TitleText" Text="MY SCREEN RECORDER" FontSize="12" Foreground="{StaticResource GreenBrush}"
+                   HorizontalAlignment="Center" Margin="0,0,0,8" />
+        <TextBlock x:Name="StatusText" TextWrapping="Wrap" LineHeight="16" Foreground="{StaticResource RedBrush}" />
+    </StackPanel>
+</Window>

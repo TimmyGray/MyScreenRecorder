@@ -1,6 +1,6 @@
 # Story 1.4: RecorderController
 
-Status: review
+Status: done
 
 ## Story
 
@@ -573,6 +573,7 @@ Pre-existing planning changes (not part of this implementation): `docs/implement
 
 ## Change Log
 
+- 2026-11-16: PR #4 merged (`d1750c1`). No Windows smoke required (no WPF file changed). Status → done.
 - 2026-11-03: Full review fixes R1-R14: `RecorderController` (busy-safe commands, `_confirming`, `Changed` cleared on `Dispose`, cached read-only targets and labels, `ComputeControls` helpers), 11 new tests (301 total), shared test helpers in `ControllerFixture`, mutation table, documents aligned (this story, `docs/planning/linux-build-architecture.md`). Status stays `review`.
 - 2026-11-03: Text aligned with the implementation (QA-confirmed deviations, error log 168): range check runs first in `Select*`; mapping drops `MonitorNumbers.Length > 0` (new Decision Record line); row B2 starts from `MonitorNumber 2` and expects `("All", 2, …)`; row E6 says Idle/Finalizing return before busy (no call, no `Changed`); guard (g) notes the two equivalent mutants of `InitialDeviceIndex`; row E1b and guard (m) added.
 - 2026-11-03: QA review (PASS WITH CONCERNS): one survivor fixed with test E1b (290 tests); documentation drift listed in Review Findings.
