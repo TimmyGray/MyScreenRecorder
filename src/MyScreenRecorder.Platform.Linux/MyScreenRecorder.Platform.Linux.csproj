@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>MyScreenRecorder.Platform.Linux</RootNamespace>
+    <AssemblyName>MyScreenRecorder.Platform.Linux</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyScreenRecorder.Core\MyScreenRecorder.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MyScreenRecorder.Platform.Linux.Tests" />
+  </ItemGroup>
+
+</Project>

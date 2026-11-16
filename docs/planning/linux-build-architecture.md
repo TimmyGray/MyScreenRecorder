@@ -6,6 +6,8 @@ Amendment 2026-11-03 (story 1.2): the edits in §1 (reference code paths), §3.1
 
 Amendment 2026-11-03 (story 1.4, decision made on the user's delegation, recorded in story 1.4's Decision Record): `RecorderController` takes `IScreenCatalog` directly instead of through `PlatformServices` (§4, last bullet of the builders list); §5.8 is clarified: badges are hidden before `StartAsync`, `ResumeAsync` needs nothing.
 
+Amendment 2026-11-16 (story 2.1 planning): §5.12 font fallback corrected to the probed behaviour (default font, not `monospace`); the font file is linked from the WPF `Assets/`. Added by the story, not contradicting this document: `SessionCheck` gains `ReadProcessEnvironment()` and a result type `SessionCheckResult(SessionKind, Message)`; the no-`DISPLAY` message text is fixed in story 2.1; `NoDisplay` takes precedence over `Wayland`; `SessionCheck` carries no `[SupportedOSPlatform]` (pure logic; the attribute gave `CA1416` warnings at every call site).
+
 This document is self-contained: an implementer needs nothing from the planning conversation. When the code or a tool behaves differently from what is written here, **stop and ask the user**; do not pick an alternative silently.
 
 ## 1. Read first (in this order)
@@ -235,7 +237,7 @@ Pure builders in Core (`MyScreenRecorder.Recording`):
 ### 5.12 Linux UI (stories 2.1, 3.x)
 
 - Avalonia 12.1.4 (`Avalonia.Desktop`, `Avalonia.Themes.Simple`), `net10.0`. Avalonia 12 renamed `SystemDecorations` to `WindowDecorations` and removed `AvaloniaLocator.Current`.
-- Pixel font PressStart2P as `AvaloniaResource`, `avares://MyScreenRecorder/Assets/Fonts#Press Start 2P`, fallback `monospace` (Consolas does not exist on Linux).
+- Pixel font PressStart2P as `AvaloniaResource`, `avares://MyScreenRecorder/Assets/Fonts#Press Start 2P`, family string `…#Press Start 2P, monospace` (Consolas does not exist on Linux). The font file is the tracked `src/MyScreenRecorder/Assets/PressStart2P-Regular.ttf`, linked into the Linux app. Verified in story 2.1: when the font is missing, the window renders in Avalonia's default (sans) font, not in a monospace font; a missing family in a comma list does not fall through to the next entry.
 - Cancel confirmation: a small own Avalonia dialog (Yes/No, default No), not a third-party MessageBox package.
 - OPEN: `xdg-open <output folder>` through `Process.Start` with `UseShellExecute = false`.
 - Crash handling: `Dispatcher.UIThread.UnhandledException` and `AppDomain.CurrentDomain.UnhandledException` show the error text (like `App.xaml.cs`).
