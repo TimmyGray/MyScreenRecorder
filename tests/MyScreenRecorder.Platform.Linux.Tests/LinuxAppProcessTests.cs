@@ -31,6 +31,38 @@ public sealed class LinuxAppProcessTests
             Set(environment, "WAYLAND_DISPLAY", waylandDisplay);
         });
 
+        await AssertExitsWithNoDisplayMessageAsync(start);
+    }
+
+    [Fact]
+    public async Task Without_DISPLAY_the_app_exits_with_1_even_when_Avalonia_cannot_be_loaded()
+    {
+        var copy = Path.Combine(Path.GetTempPath(), "msr-no-avalonia-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            CopyFiles(AppDirectory(), copy);
+            var removed = Directory.GetFiles(copy, "Avalonia*.dll");
+            Assert.NotEmpty(removed);
+            foreach (var file in removed)
+            {
+                File.Delete(file);
+            }
+
+            var start = CreateStartInfo(environment => Set(environment, "DISPLAY", null), copy);
+
+            await AssertExitsWithNoDisplayMessageAsync(start);
+        }
+        finally
+        {
+            if (Directory.Exists(copy))
+            {
+                Directory.Delete(copy, recursive: true);
+            }
+        }
+    }
+
+    private static async Task AssertExitsWithNoDisplayMessageAsync(ProcessStartInfo start)
+    {
         using var process = Process.Start(start)!;
         bool exited;
         Task<string> stderr;
@@ -46,6 +78,7 @@ public sealed class LinuxAppProcessTests
             if (!process.HasExited)
             {
                 process.Kill(entireProcessTree: true);
+                process.WaitForExit();
             }
         }
 
@@ -62,6 +95,7 @@ public sealed class LinuxAppProcessTests
     {
         Assert.SkipUnless(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")), "needs an X11 session (DISPLAY)");
         Assert.SkipUnless(OnPath("xwininfo"), "needs xwininfo on PATH");
+        Assert.SkipUnless((await RunXwininfoAsync("-root")).ExitCode == 0, "needs a reachable X server (DISPLAY)");
 
         var start = CreateStartInfo(environment =>
         {
@@ -96,10 +130,24 @@ public sealed class LinuxAppProcessTests
         }
     }
 
-    private static ProcessStartInfo CreateStartInfo(Action<IDictionary<string, string?>> edit)
+    private static string AppDirectory()
     {
-        var directory = typeof(LinuxAppProcessTests).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+        return typeof(LinuxAppProcessTests).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
             .Single(a => a.Key == "LinuxAppDirectory").Value!;
+    }
+
+    private static void CopyFiles(string source, string destination)
+    {
+        Directory.CreateDirectory(destination);
+        foreach (var file in Directory.GetFiles(source))
+        {
+            File.Copy(file, Path.Combine(destination, Path.GetFileName(file)));
+        }
+    }
+
+    private static ProcessStartInfo CreateStartInfo(Action<IDictionary<string, string?>> edit, string? directory = null)
+    {
+        directory ??= AppDirectory();
         var executable = Path.Combine(directory, "MyScreenRecorder");
         Assert.True(File.Exists(executable), "the Linux app is not built: " + executable);
 
@@ -136,14 +184,40 @@ public sealed class LinuxAppProcessTests
 
     private static async Task<bool> XwininfoFindsAsync(string title)
     {
+        var (exitCode, output) = await RunXwininfoAsync("-name", title);
+        return exitCode == 0 && output.Contains("Map State: IsViewable", StringComparison.Ordinal);
+    }
+
+    private static async Task<(int ExitCode, string Output)> RunXwininfoAsync(params string[] arguments)
+    {
         var start = new ProcessStartInfo("xwininfo") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
-        start.ArgumentList.Add("-name");
-        start.ArgumentList.Add(title);
+        foreach (var argument in arguments)
+        {
+            start.ArgumentList.Add(argument);
+        }
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
         using var process = Process.Start(start)!;
-        var output = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
-        var error = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
-        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
-        await Task.WhenAll(output, error);
-        return process.ExitCode == 0 && (await output).Contains("Map State: IsViewable", StringComparison.Ordinal);
+        try
+        {
+            var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
+            var error = process.StandardError.ReadToEndAsync(timeout.Token);
+            await process.WaitForExitAsync(timeout.Token);
+            await Task.WhenAll(output, error);
+            return (process.ExitCode, await output);
+        }
+        catch (OperationCanceledException) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            return (-1, string.Empty);
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                process.Kill();
+                process.WaitForExit();
+            }
+        }
     }
 }
