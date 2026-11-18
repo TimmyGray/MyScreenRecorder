@@ -132,6 +132,55 @@ public sealed class SessionCheckProcessEnvironmentTests : IDisposable
     }
 }
 
+[Collection(typeof(ProcessEnvironmentCollection))]
+public sealed class EnvironmentScopeTests
+{
+    private const string SetBefore = "MSR_ENVIRONMENT_SCOPE_SET_BEFORE";
+    private const string UnsetBefore = "MSR_ENVIRONMENT_SCOPE_UNSET_BEFORE";
+
+    [Fact]
+    public void Dispose_restores_the_values_from_before_the_scope()
+    {
+        Environment.SetEnvironmentVariable(SetBefore, "before");
+        Environment.SetEnvironmentVariable(UnsetBefore, null);
+        try
+        {
+            var scope = new EnvironmentScope((SetBefore, "inside"), (UnsetBefore, "inside-too"));
+            Assert.Equal("inside", Environment.GetEnvironmentVariable(SetBefore));
+            Assert.Equal("inside-too", Environment.GetEnvironmentVariable(UnsetBefore));
+
+            scope.Dispose();
+
+            Assert.Equal("before", Environment.GetEnvironmentVariable(SetBefore));
+            Assert.Null(Environment.GetEnvironmentVariable(UnsetBefore));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(SetBefore, null);
+            Environment.SetEnvironmentVariable(UnsetBefore, null);
+        }
+    }
+
+    [Fact]
+    public void Dispose_restores_a_variable_the_scope_unset()
+    {
+        Environment.SetEnvironmentVariable(SetBefore, "before");
+        try
+        {
+            var scope = new EnvironmentScope((SetBefore, null));
+            Assert.Null(Environment.GetEnvironmentVariable(SetBefore));
+
+            scope.Dispose();
+
+            Assert.Equal("before", Environment.GetEnvironmentVariable(SetBefore));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(SetBefore, null);
+        }
+    }
+}
+
 internal sealed class EnvironmentScope : IDisposable
 {
     private readonly (string Name, string? Original)[] _saved;

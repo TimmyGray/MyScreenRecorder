@@ -16,6 +16,12 @@ internal static class Program
             return 1;
         }
 
+        return StartAvalonia(session, args);
+    }
+
+    // Kept out of Main: compiling a method loads the assemblies it references, and the NoDisplay exit must not depend on Avalonia loading.
+    private static int StartAvalonia(SessionCheckResult session, string[] args)
+    {
         return AppBuilder.Configure(() => new App { Session = session })
             .UsePlatformDetect()
             .StartWithClassicDesktopLifetime(args);
